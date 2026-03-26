@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PENRO Cebu — HR Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --navy:#09182e;--navy2:#112040;--navy3:#1b3464;
+  --accent:#3b82f6;
+  --green:#22c55e;--green-bg:#dcfce7;--green-tx:#15803d;
+  --amber:#f59e0b;--amber-bg:#fef3c7;--amber-tx:#92400e;
+  --red:#ef4444;--red-bg:#fee2e2;--red-tx:#991b1b;
+  --blue-bg:#dbeafe;--blue-tx:#1d4ed8;
+  --purple-bg:#f3e8ff;--purple-tx:#7e22ce;
+  --teal-bg:#ccfbf1;--teal-tx:#0f766e;
+  --gray-bg:#f1f5f9;--gray-tx:#475569;
+  --border:#e2e8f0;--text1:#0f172a;--text2:#64748b;--text3:#94a3b8;
+  --surf:#fff;--surf2:#f8fafc;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--surf2);color:var(--text1);min-height:100vh;}
+
+/* LOADING */
+.loading{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999;transition:opacity .4s;}
+.loading.hidden{opacity:0;pointer-events:none;}
+.spinner{width:24px;height:24px;border:2px solid #1b3464;border-top-color:#3b82f6;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-title{font-size:14px;font-weight:500;color:#e2e8f0;}
+.ld-sub{font-size:11px;color:#475569;font-family:'DM Mono',monospace;}
+
+/* HEADER */
+.hdr{background:var(--navy);padding:0 28px;}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;padding:18px 0 14px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.hdr-brand{font-size:10px;font-family:'DM Mono',monospace;color:#334155;letter-spacing:.04em;}
+.hdr-title{font-size:15px;font-weight:500;color:#e2e8f0;margin-top:3px;}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.hdr-date{font-size:11px;color:#475569;font-family:'DM Mono',monospace;}
+.hdr-asof{font-size:10px;color:#334155;font-family:'DM Mono',monospace;}
+.hdr-updated{font-size:10px;color:#1e3a5f;font-family:'DM Mono',monospace;}
+.refresh-btn{font-size:10px;color:#3b82f6;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;text-decoration:underline;text-underline-offset:2px;}
+.refresh-btn:hover{color:#93c5fd;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surf);padding:0 28px;}
+.tab{font-size:12px;font-weight:500;padding:11px 18px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px;white-space:nowrap;}
+.tab:hover{color:var(--text1);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ERROR */
+.error-banner{background:var(--red-bg);border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin:16px;font-size:12px;color:var(--red-tx);display:none;}
+
+/* ═══════════════════════════════════════════
+   DASHBOARD TAB
+═══════════════════════════════════════════ */
+.dash-body{padding:24px 28px;}
+
+/* Top metric cards */
+.metric-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:24px;}
+.mc{background:var(--surf);border:0.5px solid var(--border);border-radius:10px;padding:16px 18px;border-top:3px solid transparent;transition:box-shadow .15s;}
+.mc:hover{box-shadow:0 2px 12px rgba(0,0,0,0.06);}
+.mc.c-blue{border-top-color:#3b82f6;}
+.mc.c-green{border-top-color:#22c55e;}
+.mc.c-amber{border-top-color:#f59e0b;}
+.mc.c-red{border-top-color:#ef4444;}
+.mc.c-purple{border-top-color:#a855f7;}
+.mc-label{font-size:10px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;}
+.mc-value{font-size:28px;font-weight:600;color:var(--text1);line-height:1;font-variant-numeric:tabular-nums;}
+.mc-sub{font-size:11px;color:var(--text2);margin-top:5px;}
+
+/* Two-column main layout */
+.dash-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;}
+.dash-grid-3{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,0.8fr) minmax(0,1fr);gap:16px;margin-top:16px;}
+
+/* Cards */
+.card{background:var(--surf);border:0.5px solid var(--border);border-radius:10px;padding:16px 18px;}
+.card-title{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+.card-title-right{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;font-weight:400;}
+
+/* Workforce table */
+.wf-table{width:100%;border-collapse:collapse;}
+.wf-table th{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;padding:0 6px 8px 0;text-align:left;border-bottom:1px solid var(--border);}
+.wf-table th.r{text-align:right;}
+.wf-table td{padding:8px 6px 8px 0;font-size:12px;border-bottom:0.5px solid var(--border);vertical-align:middle;}
+.wf-table tbody tr:last-child td{border-bottom:none;}
+.wf-table td.r{text-align:right;}
+.wf-office{font-weight:500;color:var(--text1);}
+.wf-mini{font-size:10px;color:var(--text3);margin-top:1px;}
+.fill-bar{height:4px;border-radius:2px;background:var(--gray-bg);overflow:hidden;width:60px;}
+.fill-inner{height:4px;border-radius:2px;}
+.pill{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;}
+.pill-green{background:var(--green-bg);color:var(--green-tx);}
+.pill-amber{background:var(--amber-bg);color:var(--amber-tx);}
+.pill-blue{background:var(--blue-bg);color:var(--blue-tx);}
+.pill-gray{background:var(--gray-bg);color:var(--gray-tx);}
+
+/* Stat rows */
+.stat-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.stat-row:last-child{margin-bottom:0;}
+.stat-name{font-size:11px;color:var(--text1);min-width:90px;flex-shrink:0;}
+.stat-track{flex:1;height:4px;background:var(--gray-bg);border-radius:2px;overflow:hidden;}
+.stat-fill{height:4px;border-radius:2px;}
+.stat-cnt{font-size:11px;font-weight:500;font-family:'DM Mono',monospace;color:var(--text2);min-width:24px;text-align:right;}
+
+/* Charts */
+.chart-wrap{position:relative;}
+
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.kpi{padding:10px 12px;background:var(--surf2);border-radius:8px;text-align:center;}
+.kpi-val{font-size:20px;font-weight:600;color:var(--text1);font-variant-numeric:tabular-nums;}
+.kpi-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}
+
+/* ═══════════════════════════════════════════
+   EMPLOYEE PROFILE TAB
+═══════════════════════════════════════════ */
+.profile-body{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:calc(100vh - 110px);}
+.profile-sidebar{border-right:1px solid var(--border);background:var(--surf);display:flex;flex-direction:column;}
+.sidebar-search{padding:16px 16px 10px;}
+.sidebar-search-wrap{position:relative;}
+.si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px;pointer-events:none;}
+.search-input{width:100%;padding:7px 10px 7px 28px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--surf2);color:var(--text1);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;}
+.search-input:focus{border-color:var(--accent);background:var(--surf);}
+.sidebar-count{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;padding:0 16px 8px;}
+.sidebar-list{flex:1;overflow-y:auto;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-bottom:0.5px solid var(--border);transition:background .1s;}
+.sidebar-item:hover{background:var(--surf2);}
+.sidebar-item.active{background:#eff6ff;border-right:3px solid var(--accent);}
+.si-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+.si-name{font-size:12px;font-weight:500;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.si-sub{font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
+.profile-main{padding:24px 28px;background:var(--surf2);overflow-y:auto;}
+.profile-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:10px;padding:60px 0;}
+.profile-empty-icon{width:40px;height:40px;border-radius:50%;background:var(--gray-bg);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.profile-empty-text{font-size:13px;}
+
+/* Profile card */
+.pf-header{background:var(--navy);border-radius:10px;padding:20px 22px;margin-bottom:16px;display:flex;align-items:center;gap:16px;}
+.pf-avatar-lg{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0;border:2px solid rgba(255,255,255,0.15);}
+.pf-title{font-size:16px;font-weight:600;color:#e2e8f0;}
+.pf-pos-txt{font-size:12px;color:#93c5fd;margin-top:3px;}
+.pf-office-txt{font-size:11px;color:#64748b;margin-top:2px;}
+.pf-badges{display:flex;gap:6px;margin-top:8px;}
+.pf-badge{font-size:9px;font-weight:600;padding:2px 8px;border-radius:4px;}
+.pf-badge.perm{background:#1d4ed8;color:#dbeafe;}
+.pf-badge.cti{background:#6b21a8;color:#f3e8ff;}
+.pf-badge.sg{background:rgba(255,255,255,0.1);color:#93c5fd;}
+.pf-badge.lvl{background:rgba(255,255,255,0.08);color:#64748b;}
+
+.pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.pf-section{background:var(--surf);border:0.5px solid var(--border);border-radius:10px;padding:16px 18px;}
+.pf-section-title{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid var(--border);}
+.pf-field{display:flex;flex-direction:column;gap:2px;margin-bottom:10px;}
+.pf-field:last-child{margin-bottom:0;}
+.pf-field-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.pf-field-value{font-size:12px;font-weight:500;color:var(--text1);line-height:1.4;}
+
+.pf-ipcr{background:var(--navy);border-radius:8px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;}
+.pf-ipcr-left .label{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;}
+.pf-ipcr-left .adj{font-size:13px;font-weight:600;color:#22c55e;margin-top:3px;}
+.pf-ipcr-val{font-size:32px;font-weight:600;color:#e2e8f0;font-variant-numeric:tabular-nums;}
+
+.pf-full{grid-column:1/-1;}
+
+/* Badge */
+.badge{font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap;display:inline-block;}
+.bd-m{background:#dbeafe;color:#1d4ed8;}
+.bd-f{background:#fce7f3;color:#9d174d;}
+.sg-badge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:18px;padding:0 4px;border-radius:3px;font-size:9px;font-weight:600;background:var(--gray-bg);color:var(--gray-tx);font-family:'DM Mono',monospace;}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading" id="loadingScreen">
+  <div class="spinner"></div>
+  <div class="ld-title">PENRO Cebu HR Dashboard</div>
+  <div class="ld-sub" id="ldSub">Fetching data from Google Sheets...</div>
+</div>
+
+<div class="error-banner" id="errorBanner"></div>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <div class="hdr-brand">DEPARTMENT OF ENVIRONMENT AND NATURAL RESOURCES</div>
+      <div class="hdr-title">PROVINCIAL ENVIRONMENT AND NATURAL RESOURCES OFFICE — CEBU</div>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-date" id="hdrDate"></div>
+      <div class="hdr-asof">Data as of September 30, 2025</div>
+      <div class="hdr-updated" id="hdrUpdated"></div>
+      <button class="refresh-btn" onclick="loadData()">↻ Refresh data</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="setTab('dashboard',this)">Dashboard</div>
+  <div class="tab" onclick="setTab('profile',this)">Employee Profile</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     DASHBOARD TAB
+══════════════════════════════════════ -->
+<div id="tab-dashboard" class="dash-body">
+
+  <!-- Metric cards -->
+  <div class="metric-cards" id="metricCards"></div>
+
+  <!-- Row 1: Workforce table + Stats -->
+  <div class="dash-grid">
+    <div class="card">
+      <div class="card-title">
+        Plantilla positions
+        <span class="card-title-right" id="plantillaSub"></span>
+      </div>
+      <table class="wf-table">
+        <thead><tr>
+          <th>Office</th>
+          <th class="r">Total</th>
+          <th class="r">Filled</th>
+          <th class="r">Vacant</th>
+          <th class="r">Fill rate</th>
+        </tr></thead>
+        <tbody id="plantillaTable"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Workforce statistics (permanent filled)</div>
+      <div id="workforceStats"></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Gender, Age, Training -->
+  <div class="dash-grid-3">
+    <div class="card">
+      <div class="card-title">Gender distribution</div>
+      <div class="chart-wrap" style="height:180px;"><canvas id="genderChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Position level</div>
+      <div class="chart-wrap" style="height:180px;"><canvas id="levelChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        Training summary
+        <span class="card-title-right" id="trainingSub"></span>
+      </div>
+      <div id="trainingStats"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     EMPLOYEE PROFILE TAB
+══════════════════════════════════════ -->
+<div id="tab-profile" class="profile-body" style="display:none;">
+  <div class="profile-sidebar">
+    <div class="sidebar-search">
+      <div class="sidebar-search-wrap">
+        <span class="si">&#9906;</span>
+        <input class="search-input" type="text" placeholder="Search employee..." id="pfSearch" oninput="filterProfiles()">
+      </div>
+    </div>
+    <div class="sidebar-count" id="pfCount"></div>
+    <div class="sidebar-list" id="pfList"></div>
+  </div>
+  <div class="profile-main" id="pfMain">
+    <div class="profile-empty-state">
+      <div class="profile-empty-icon">&#128100;</div>
+      <div class="profile-empty-text">Select an employee to view their profile</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// PASTE YOUR APPS SCRIPT WEB APP URL HERE
+// ============================================================
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7SXiPqXvG6c2pkAO8VdQM7l_AGKQITl7skb4q96LZD5jI2brTrGzXBHPysHOPaWgO/exec";
+// ============================================================
+
+const OFFICES = ["PENRO Cebu","CENRO Cebu City","CENRO Argao","REGIONAL OFFICE"];
+const OFFICE_SHORT = {"PENRO Cebu":"PENRO Cebu","CENRO Cebu City":"CENRO Cebu City","CENRO Argao":"CENRO Argao","REGIONAL OFFICE":"Regional Office"};
+const OFFICE_COLORS = {"PENRO Cebu":"#3b82f6","CENRO Cebu City":"#22c55e","CENRO Argao":"#f59e0b","REGIONAL OFFICE":"#94a3b8"};
+
+let DATA = {};
+
+// ── LOAD ─────────────────────────────────────
+async function loadData() {
+  document.getElementById("loadingScreen").classList.remove("hidden");
+  document.getElementById("ldSub").textContent = "Fetching data from Google Sheets...";
+  document.getElementById("errorBanner").style.display = "none";
+
+  if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") {
+    showError("No Apps Script URL set. Open this file in a text editor, find APPS_SCRIPT_URL, and paste your deployed Web App URL.");
+    hideLoading(); return;
+  }
+
+  try {
+    document.getElementById("ldSub").textContent = "Loading personnel data...";
+    const res = await fetch(APPS_SCRIPT_URL);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    DATA = await res.json();
+    if (DATA.error) throw new Error(DATA.error);
+    renderAll();
+  } catch(err) {
+    showError("Could not load data: " + err.message + ". Check your Apps Script URL and deployment settings.");
+  }
+  hideLoading();
+}
+
+function hideLoading() {
+  setTimeout(()=>document.getElementById("loadingScreen").classList.add("hidden"), 300);
+}
+function showError(msg) {
+  const el = document.getElementById("errorBanner");
+  el.textContent = msg; el.style.display = "block";
+}
+
+// ── RENDER ALL ────────────────────────────────
+function renderAll() {
+  const d = new Date();
+  document.getElementById("hdrDate").textContent =
+    d.toLocaleDateString("en-PH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  document.getElementById("hdrUpdated").textContent =
+    DATA.lastUpdated ? "Generated: " + DATA.lastUpdated : "";
+
+  renderMetricCards();
+  renderPlantillaTable();
+  renderWorkforceStats();
+  renderGenderChart();
+  renderLevelChart();
+  renderTrainingStats();
+  renderProfileList();
+}
+
+// ── METRIC CARDS ──────────────────────────────
+function renderMetricCards() {
+  const s = DATA.summary || {};
+  const cards = [
+    { label:"Filled positions", value:s.totalFilled||0,
+      sub: (s.totalFilled||0)+" of "+(s.totalItems||0)+" total items", color:"c-blue" },
+    { label:"Vacancies", value:s.totalUnfilled||0,
+      sub:"Plantilla unfilled", color:"c-amber" },
+    { label:"Retirees 2026–2031", value:s.retiringSoon||0,
+      sub:"Upcoming retirements", color:"c-red" },
+    { label:"HMO enrolled", value:s.hmoEnrolled||0,
+      sub:(s.hmoEnrolled||0)+" of "+(s.hmoTotal||0)+" permanent staff", color:"c-green" },
+    { label:"Training sessions", value:s.trainingSessions||0,
+      sub:(s.trainingHours||0).toLocaleString()+" total hours", color:"c-purple" },
+  ];
+
+  document.getElementById("metricCards").innerHTML = cards.map(c=>`
+    <div class="mc ${c.color}">
+      <div class="mc-label">${c.label}</div>
+      <div class="mc-value">${c.value}</div>
+      <div class="mc-sub">${c.sub}</div>
+    </div>`).join("");
+}
+
+// ── PLANTILLA TABLE ───────────────────────────
+function renderPlantillaTable() {
+  const s   = DATA.summary || {};
+  const byO = s.byOffice  || {};
+  document.getElementById("plantillaSub").textContent =
+    (s.totalFilled||0)+" filled · "+(s.totalUnfilled||0)+" vacant";
+
+  const rows = OFFICES.map(o => {
+    const d = byO[o] || { total:0, filled:0, unfilled:0 };
+    if (!d.total) return "";
+    const pct = d.total ? Math.round(d.filled/d.total*100) : 0;
+    const pillCls = pct===100?"pill-green":pct>=80?"pill-blue":pct>=50?"pill-amber":"pill-gray";
+    const barColor = OFFICE_COLORS[o]||"#94a3b8";
+    return `<tr>
+      <td>
+        <div class="wf-office">${OFFICE_SHORT[o]||o}</div>
+      </td>
+      <td class="r">${d.total}</td>
+      <td class="r">${d.filled}</td>
+      <td class="r">${d.unfilled||0}</td>
+      <td class="r">
+        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;">
+          <div class="fill-bar"><div class="fill-inner" style="width:${pct}%;background:${barColor};"></div></div>
+          <span class="pill ${pillCls}">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+
+  // Totals row
+  const totalFilled   = Object.values(byO).reduce((s,o)=>s+(o.filled||0),0);
+  const totalUnfilled = Object.values(byO).reduce((s,o)=>s+(o.unfilled||0),0);
+  const grandTotal    = totalFilled + totalUnfilled;
+  const totalPct      = grandTotal ? Math.round(totalFilled/grandTotal*100) : 0;
+
+  document.getElementById("plantillaTable").innerHTML = rows + `
+    <tr style="background:var(--surf2);font-weight:500;">
+      <td><div class="wf-office">Total</div></td>
+      <td class="r">${grandTotal}</td>
+      <td class="r">${totalFilled}</td>
+      <td class="r">${totalUnfilled}</td>
+      <td class="r"><span class="pill ${totalPct>=80?"pill-blue":"pill-amber"}">${totalPct}%</span></td>
+    </tr>`;
+}
+
+// ── WORKFORCE STATS ───────────────────────────
+function renderWorkforceStats() {
+  const s = DATA.summary || {};
+  const filled = (DATA.employees||[]).filter(e=>e.vacancy==="filled");
+
+  const html = `
+    <div class="kpi-row" style="margin-bottom:16px;">
+      <div class="kpi">
+        <div class="kpi-val">${s.avgAge||"--"}</div>
+        <div class="kpi-lbl">Average age</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-val">${s.avgService||"--"}</div>
+        <div class="kpi-lbl">Avg service (yrs)</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-val">${s.avgIpcr||"--"}</div>
+        <div class="kpi-lbl">Avg IPCR</div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">Male</span>
+      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.male,filled.length)}%;background:#3b82f6;"></div></div>
+      <span class="stat-cnt">${s.male||0}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">Female</span>
+      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.female,filled.length)}%;background:#ec4899;"></div></div>
+      <span class="stat-cnt">${s.female||0}</span>
+    </div>
+    <div class="stat-row" style="margin-top:8px;">
+      <span class="stat-name">Permanent</span>
+      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.permanent,filled.length)}%;background:#3b82f6;"></div></div>
+      <span class="stat-cnt">${s.permanent||0}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">CTI</span>
+      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.cti,filled.length)}%;background:#a855f7;"></div></div>
+      <span class="stat-cnt">${s.cti||0}</span>
+    </div>
+    <div class="stat-row" style="margin-top:8px;">
+      <span class="stat-name">Second level</span>
+      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.secondLevel,filled.length)}%;background:#0f766e;"></div></div>
+      <span class="stat-cnt">${s.secondLevel||0}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">First level</span>
+      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.firstLevel,filled.length)}%;background:#22c55e;"></div></div>
+      <span class="stat-cnt">${s.firstLevel||0}</span>
+    </div>`;
+
+  document.getElementById("workforceStats").innerHTML = html;
+}
+
+function pct(v,t){return t?Math.round((v||0)/t*100):0;}
+
+// ── CHARTS ────────────────────────────────────
+function renderGenderChart() {
+  destroyChart("genderChart");
+  const s = DATA.summary||{};
+  const m = s.male||0, f = s.female||0;
+  new Chart(document.getElementById("genderChart"),{
+    type:"doughnut",
+    data:{labels:["Male "+m,"Female "+f],datasets:[{data:[m,f],backgroundColor:["#3b82f6","#ec4899"],borderWidth:3,borderColor:"#fff"}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"65%",
+      plugins:{legend:{position:"bottom",labels:{font:{size:11,family:"DM Sans"},color:"#64748b",boxWidth:10,padding:12}},
+      tooltip:{callbacks:{label:c=>" "+c.parsed+" ("+Math.round(c.parsed/(m+f)*100)+"%)"}}}}}
+  });
+}
+
+function renderLevelChart() {
+  destroyChart("levelChart");
+  const s = DATA.summary||{};
+  const sec = s.secondLevel||0, fst = s.firstLevel||0;
+  new Chart(document.getElementById("levelChart"),{
+    type:"doughnut",
+    data:{labels:["Second Level "+sec,"First Level "+fst],datasets:[{data:[sec,fst],backgroundColor:["#0f766e","#22c55e"],borderWidth:3,borderColor:"#fff"}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"65%",
+      plugins:{legend:{position:"bottom",labels:{font:{size:11,family:"DM Sans"},color:"#64748b",boxWidth:10,padding:12}},
+      tooltip:{callbacks:{label:c=>" "+c.parsed+" ("+Math.round(c.parsed/(sec+fst)*100)+"%)"}}}}}
+  });
+}
+
+function renderTrainingStats() {
+  const t = DATA.training||{};
+  const byType = t.byType||{};
+  const total  = t.total||1;
+
+  document.getElementById("trainingSub").textContent =
+    (t.total||0)+" sessions · "+(t.totalHours||0)+"h";
+
+  const typeColors = {"Technical":"#3b82f6","Administrative":"#22c55e","Leadership":"#f59e0b","Mandatory":"#a855f7","Organizational":"#0f766e"};
+
+  document.getElementById("trainingStats").innerHTML = Object.entries(byType)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([type,cnt])=>`
+      <div class="stat-row">
+        <span class="stat-name">${type}</span>
+        <div class="stat-track"><div class="stat-fill" style="width:${Math.round(cnt/total*100)}%;background:${typeColors[type]||"#94a3b8"};"></div></div>
+        <span class="stat-cnt">${cnt}</span>
+      </div>`).join("");
+}
+
+// ── EMPLOYEE PROFILE ──────────────────────────
+function renderProfileList() {
+  filterProfiles();
+}
+
+function filterProfiles() {
+  const q = document.getElementById("pfSearch").value.toLowerCase();
+  const emp = (DATA.employees||[]).filter(e =>
+    !q || e.name.toLowerCase().includes(q) ||
+    (e.position||"").toLowerCase().includes(q) ||
+    (e.office||"").toLowerCase().includes(q)
+  );
+
+  document.getElementById("pfCount").textContent = emp.length + " employees";
+  const list = document.getElementById("pfList");
+
+  if (!emp.length) {
+    list.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text3);font-size:12px;">No employees found.</div>`;
+    return;
+  }
+
+  list.innerHTML = emp.map(e => {
+    const idx     = (DATA.employees||[]).indexOf(e);
+    const initials = e.name.split(" ").map(w=>w[0]).filter(Boolean).slice(0,2).join("");
+    const color   = OFFICE_COLORS[e.office]||"#64748b";
+    return `<div class="sidebar-item" id="si-${idx}" onclick="showProfile(${idx})">
+      <div class="si-avatar" style="background:${color}22;color:${color};">${initials}</div>
+      <div style="min-width:0;flex:1;">
+        <div class="si-name">${e.name}</div>
+        <div class="si-sub">${e.position.substring(0,40)}${e.position.length>40?"...":""}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function showProfile(idx) {
+  // Highlight selected
+  document.querySelectorAll(".sidebar-item").forEach(el=>el.classList.remove("active"));
+  const sel = document.getElementById("si-"+idx);
+  if (sel) sel.classList.add("active");
+
+  const e = (DATA.employees||[])[idx];
+  if (!e) return;
+
+  const initials = e.name.split(" ").map(w=>w[0]).filter(Boolean).slice(0,2).join("");
+  const color    = OFFICE_COLORS[e.office]||"#1b3464";
+
+  // IPCR match
+  const ipcr = (DATA.ipcr||[]).find(r => {
+    const rn = r.name.toUpperCase();
+    const parts = e.name.toUpperCase().split(" ").filter(Boolean);
+    return parts.length >= 2 && rn.includes(parts[0]) && rn.includes(parts[parts.length-1]);
+  });
+
+  function adjectival(r) {
+    if (!r) return "—";
+    if (r >= 5)   return "Outstanding";
+    if (r >= 4)   return "Very Satisfactory";
+    if (r >= 3)   return "Satisfactory";
+    if (r >= 2)   return "Unsatisfactory";
+    return "Poor";
+  }
+
+  function retYears() {
+    if (!e.ret_date) return "";
+    const yr  = new Date(e.ret_date).getFullYear();
+    const now = new Date().getFullYear();
+    const diff = yr - now;
+    if (diff <= 0) return "Due for retirement";
+    if (diff === 1) return "Retiring next year";
+    return "Retiring in "+diff+" years";
+  }
+
+  document.getElementById("pfMain").innerHTML = `
+    <div class="pf-header">
+      <div class="pf-avatar-lg" style="background:${color}33;color:#e2e8f0;">${initials}</div>
+      <div>
+        <div class="pf-title">${e.name}</div>
+        <div class="pf-pos-txt">${e.position}</div>
+        <div class="pf-office-txt">${e.office} · ${e.org_unit}</div>
+        <div class="pf-badges">
+          <span class="pf-badge ${e.status==="PERMANENT"?"perm":"cti"}">${e.status}</span>
+          <span class="pf-badge sg">SG ${e.sg||"—"}</span>
+          <span class="pf-badge lvl">${e.pos_level||"—"}</span>
+          ${e.sex ? `<span class="badge ${e.sex==="MALE"?"bd-m":"bd-f"}" style="font-size:9px;">${e.sex}</span>` : ""}
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-grid">
+
+      <div class="pf-section">
+        <div class="pf-section-title">Personal information</div>
+        <div class="pf-field"><div class="pf-field-label">Full name</div><div class="pf-field-value">${e.name}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Date of birth</div><div class="pf-field-value">${e.dob||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Age</div><div class="pf-field-value">${e.age!=null?e.age+" years old":"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Sex</div><div class="pf-field-value">${e.sex||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">TIN</div><div class="pf-field-value">${e.tin||"—"}</div></div>
+      </div>
+
+      <div class="pf-section">
+        <div class="pf-section-title">Appointment details</div>
+        <div class="pf-field"><div class="pf-field-label">Status</div><div class="pf-field-value">${e.status||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Salary grade</div><div class="pf-field-value">SG ${e.sg||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Position level</div><div class="pf-field-value">${e.pos_level||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Category</div><div class="pf-field-value">${e.category||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Nature of appointment</div><div class="pf-field-value">${e.nature_appt||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Current status</div><div class="pf-field-value">${e.current_status||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Date of appointment</div><div class="pf-field-value">${e.date_appt||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Date of initial entry</div><div class="pf-field-value">${e.date_initial||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Length of service</div><div class="pf-field-value">${e.length_svc!=null?e.length_svc+" year(s)":"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Expected retirement</div><div class="pf-field-value">${e.ret_date||"—"}${e.ret_date?`<span style="margin-left:6px;font-size:10px;color:var(--text3);">${retYears()}</span>`:""}</div></div>
+      </div>
+
+      <div class="pf-section">
+        <div class="pf-section-title">Education &amp; eligibility</div>
+        <div class="pf-field"><div class="pf-field-label">Education</div><div class="pf-field-value">${e.education||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Highest attainment</div><div class="pf-field-value">${e.highest_educ||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">MPA / PhD / LLB</div><div class="pf-field-value">${e.mpa_phd||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Other certificate</div><div class="pf-field-value">${e.other_cert||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Eligibility</div><div class="pf-field-value">${e.eligibility||"—"}</div></div>
+      </div>
+
+      <div class="pf-section">
+        <div class="pf-section-title">HMO &amp; performance</div>
+        ${ipcr ? `
+          <div class="pf-ipcr" style="margin-bottom:12px;">
+            <div class="pf-ipcr-left">
+              <div class="label">IPCR Rating CY2025</div>
+              <div class="adj">${adjectival(ipcr.rating)}</div>
+            </div>
+            <div class="pf-ipcr-val">${ipcr.rating.toFixed(3)}</div>
+          </div>` :
+          `<div class="pf-field"><div class="pf-field-label">IPCR Rating CY2025</div><div class="pf-field-value">—</div></div>`
+        }
+        <div class="pf-field"><div class="pf-field-label">Item number</div><div class="pf-field-value" style="font-size:11px;">${e.item_no||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Org unit</div><div class="pf-field-value">${e.org_unit||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Office assignment</div><div class="pf-field-value">${e.office||"—"}</div></div>
+      </div>
+
+    </div>`;
+}
+
+// ── TABS ─────────────────────────────────────
+function setTab(tab, el) {
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("tab-dashboard").style.display = tab==="dashboard" ? "block"  : "none";
+  document.getElementById("tab-profile").style.display   = tab==="profile"   ? "grid"   : "none";
+}
+
+// ── UTIL ─────────────────────────────────────
+function destroyChart(id) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const ex = Chart.getChart(canvas);
+  if (ex) ex.destroy();
+}
+
+// ── INIT ─────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
+<div class="pf-field"><div class="pf-field-label">Item number</div><div class="pf-field-value" style="font-size:11px;">${e.item_no||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Org unit</div><div class="pf-field-value">${e.org_unit||"—"}</div></div>
+        <div class="pf-field"><div class="pf-field-label">Office assignment</div><div class="pf-field-value">${e.office||"—"}</div></div>
+      </div>
+    </div>`;
+}
+
+// ── TABS ─────────────────────────────────────
+function setTab(tab, el) {
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("tab-dashboard").style.display = tab==="dashboard" ? "block" : "none";
+  document.getElementById("tab-profile").style.display = tab==="profile" ? "grid" : "none";
+}
+
+// ── UTIL ─────────────────────────────────────
+function destroyChart(id) {
+  const chartStatus = Chart.getChart(id);
+  if (chartStatus !== undefined) {
+    chartStatus.destroy();
+  }
+}
+
+// ── INIT ─────────────────────────────────────
+window.onload = loadData;
+</script>
+</body>
+</html>
