@@ -517,12 +517,23 @@ function renderTrainingStats() {
 }
 
 // ── EMPLOYEE PROFILE ──────────────────────────
-function renderProfileList() {
-  filterProfiles();
+
+// Safely set text on a DOM element — handles all special characters
+function txt(el, val) { el.textContent = val || "—"; }
+
+// Build a label/value field safely using DOM
+function field(label, value) {
+  const wrap  = document.createElement("div"); wrap.className  = "pf-field";
+  const lbl   = document.createElement("div"); lbl.className   = "pf-field-label"; lbl.textContent = label;
+  const val   = document.createElement("div"); val.className   = "pf-field-value"; val.textContent = value || "—";
+  wrap.appendChild(lbl); wrap.appendChild(val);
+  return wrap;
 }
 
+function renderProfileList() { filterProfiles(); }
+
 function filterProfiles() {
-  const q = document.getElementById("pfSearch").value.toLowerCase();
+  const q   = document.getElementById("pfSearch").value.toLowerCase();
   const emp = (DATA.employees||[]).filter(e =>
     !q || e.name.toLowerCase().includes(q) ||
     (e.position||"").toLowerCase().includes(q) ||
@@ -531,132 +542,182 @@ function filterProfiles() {
 
   document.getElementById("pfCount").textContent = emp.length + " employees";
   const list = document.getElementById("pfList");
+  list.innerHTML = "";
 
   if (!emp.length) {
-    list.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text3);font-size:12px;">No employees found.</div>`;
+    const msg = document.createElement("div");
+    msg.style.cssText = "text-align:center;padding:32px 16px;color:var(--text3);font-size:12px;";
+    msg.textContent = "No employees found.";
+    list.appendChild(msg);
     return;
   }
 
-  list.innerHTML = emp.map(e => {
-    const idx     = (DATA.employees||[]).indexOf(e);
-    const initials = e.name.split(" ").map(w=>w[0]).filter(Boolean).slice(0,2).join("");
-    const color   = OFFICE_COLORS[e.office]||"#64748b";
-    return `<div class="sidebar-item" id="si-${idx}" onclick="showProfile(${idx})">
-      <div class="si-avatar" style="background:${color}22;color:${color};">${initials}</div>
-      <div style="min-width:0;flex:1;">
-        <div class="si-name">${e.name}</div>
-        <div class="si-sub">${e.position.substring(0,40)}${e.position.length>40?"...":""}</div>
-      </div>
-    </div>`;
-  }).join("");
+  emp.forEach(function(e) {
+    const idx      = (DATA.employees||[]).indexOf(e);
+    const initials = e.name.split(" ").map(function(w){return w[0]||"";}).filter(Boolean).slice(0,2).join("");
+    const color    = OFFICE_COLORS[e.office]||"#64748b";
+
+    const item = document.createElement("div");
+    item.className = "sidebar-item";
+    item.id = "si-" + idx;
+    item.dataset.idx = idx;
+
+    const avatar = document.createElement("div");
+    avatar.className = "si-avatar";
+    avatar.style.cssText = "background:" + color + "22;color:" + color + ";";
+    avatar.textContent = initials;
+
+    const info = document.createElement("div");
+    info.style.cssText = "min-width:0;flex:1;";
+
+    const name = document.createElement("div"); name.className = "si-name";
+    name.textContent = e.name;
+
+    const sub = document.createElement("div"); sub.className = "si-sub";
+    sub.textContent = e.position.length > 40 ? e.position.substring(0,40)+"..." : e.position;
+
+    info.appendChild(name); info.appendChild(sub);
+    item.appendChild(avatar); item.appendChild(info);
+
+    item.addEventListener("click", function() { showProfile(parseInt(item.dataset.idx)); });
+    list.appendChild(item);
+  });
 }
 
 function showProfile(idx) {
-  // Highlight selected
-  document.querySelectorAll(".sidebar-item").forEach(el=>el.classList.remove("active"));
-  const sel = document.getElementById("si-"+idx);
+  document.querySelectorAll(".sidebar-item").forEach(function(el){ el.classList.remove("active"); });
+  const sel = document.getElementById("si-" + idx);
   if (sel) sel.classList.add("active");
 
   const e = (DATA.employees||[])[idx];
   if (!e) return;
 
-  const initials = e.name.split(" ").map(w=>w[0]).filter(Boolean).slice(0,2).join("");
+  const initials = e.name.split(" ").map(function(w){return w[0]||"";}).filter(Boolean).slice(0,2).join("");
   const color    = OFFICE_COLORS[e.office]||"#1b3464";
 
-  // IPCR match
-  const ipcr = (DATA.ipcr||[]).find(r => {
-    const rn = r.name.toUpperCase();
+  const ipcr = (DATA.ipcr||[]).find(function(r) {
+    const rn    = r.name.toUpperCase();
     const parts = e.name.toUpperCase().split(" ").filter(Boolean);
     return parts.length >= 2 && rn.includes(parts[0]) && rn.includes(parts[parts.length-1]);
   });
 
   function adjectival(r) {
     if (!r) return "—";
-    if (r >= 5)   return "Outstanding";
-    if (r >= 4)   return "Very Satisfactory";
-    if (r >= 3)   return "Satisfactory";
-    if (r >= 2)   return "Unsatisfactory";
+    if (r >= 5) return "Outstanding";
+    if (r >= 4) return "Very Satisfactory";
+    if (r >= 3) return "Satisfactory";
+    if (r >= 2) return "Unsatisfactory";
     return "Poor";
   }
 
   function retYears() {
     if (!e.ret_date) return "";
-    const yr  = new Date(e.ret_date).getFullYear();
-    const now = new Date().getFullYear();
-    const diff = yr - now;
-    if (diff <= 0) return "Due for retirement";
-    if (diff === 1) return "Retiring next year";
-    return "Retiring in "+diff+" years";
+    const diff = new Date(e.ret_date).getFullYear() - new Date().getFullYear();
+    if (diff <= 0) return " · Due for retirement";
+    if (diff === 1) return " · Retiring next year";
+    return " · Retiring in " + diff + " years";
   }
 
-  document.getElementById("pfMain").innerHTML = `
-    <div class="pf-header">
-      <div class="pf-avatar-lg" style="background:${color}33;color:#e2e8f0;">${initials}</div>
-      <div>
-        <div class="pf-title">${e.name}</div>
-        <div class="pf-pos-txt">${e.position}</div>
-        <div class="pf-office-txt">${e.office} · ${e.org_unit}</div>
-        <div class="pf-badges">
-          <span class="pf-badge ${e.status==="PERMANENT"?"perm":"cti"}">${e.status}</span>
-          <span class="pf-badge sg">SG ${e.sg||"—"}</span>
-          <span class="pf-badge lvl">${e.pos_level||"—"}</span>
-          ${e.sex ? `<span class="badge ${e.sex==="MALE"?"bd-m":"bd-f"}" style="font-size:9px;">${e.sex}</span>` : ""}
-        </div>
-      </div>
-    </div>
+  // ── Build profile header ──
+  const header = document.createElement("div"); header.className = "pf-header";
 
-    <div class="pf-grid">
+  const avEl = document.createElement("div"); avEl.className = "pf-avatar-lg";
+  avEl.style.cssText = "background:" + color + "33;color:#e2e8f0;";
+  avEl.textContent = initials;
 
-      <div class="pf-section">
-        <div class="pf-section-title">Personal information</div>
-        <div class="pf-field"><div class="pf-field-label">Full name</div><div class="pf-field-value">${e.name}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Date of birth</div><div class="pf-field-value">${e.dob||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Age</div><div class="pf-field-value">${e.age!=null?e.age+" years old":"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Sex</div><div class="pf-field-value">${e.sex||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">TIN</div><div class="pf-field-value">${e.tin||"—"}</div></div>
-      </div>
+  const info = document.createElement("div");
 
-      <div class="pf-section">
-        <div class="pf-section-title">Appointment details</div>
-        <div class="pf-field"><div class="pf-field-label">Status</div><div class="pf-field-value">${e.status||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Salary grade</div><div class="pf-field-value">SG ${e.sg||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Position level</div><div class="pf-field-value">${e.pos_level||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Category</div><div class="pf-field-value">${e.category||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Nature of appointment</div><div class="pf-field-value">${e.nature_appt||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Current status</div><div class="pf-field-value">${e.current_status||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Date of appointment</div><div class="pf-field-value">${e.date_appt||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Date of initial entry</div><div class="pf-field-value">${e.date_initial||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Length of service</div><div class="pf-field-value">${e.length_svc!=null?e.length_svc+" year(s)":"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Expected retirement</div><div class="pf-field-value">${e.ret_date||"—"}${e.ret_date?`<span style="margin-left:6px;font-size:10px;color:var(--text3);">${retYears()}</span>`:""}</div></div>
-      </div>
+  const nameEl = document.createElement("div"); nameEl.className = "pf-title"; nameEl.textContent = e.name;
+  const posEl  = document.createElement("div"); posEl.className  = "pf-pos-txt"; posEl.textContent = e.position;
+  const offEl  = document.createElement("div"); offEl.className  = "pf-office-txt";
+  offEl.textContent = (e.office||"") + " · " + (e.org_unit||"");
 
-      <div class="pf-section">
-        <div class="pf-section-title">Education &amp; eligibility</div>
-        <div class="pf-field"><div class="pf-field-label">Education</div><div class="pf-field-value">${e.education||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Highest attainment</div><div class="pf-field-value">${e.highest_educ||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">MPA / PhD / LLB</div><div class="pf-field-value">${e.mpa_phd||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Other certificate</div><div class="pf-field-value">${e.other_cert||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Eligibility</div><div class="pf-field-value">${e.eligibility||"—"}</div></div>
-      </div>
+  const badges = document.createElement("div"); badges.className = "pf-badges";
+  const b1 = document.createElement("span"); b1.className = "pf-badge " + (e.status==="PERMANENT"?"perm":"cti"); b1.textContent = e.status||"";
+  const b2 = document.createElement("span"); b2.className = "pf-badge sg"; b2.textContent = "SG " + (e.sg||"—");
+  const b3 = document.createElement("span"); b3.className = "pf-badge lvl"; b3.textContent = e.pos_level||"—";
+  badges.appendChild(b1); badges.appendChild(b2); badges.appendChild(b3);
+  if (e.sex) {
+    const b4 = document.createElement("span");
+    b4.className = "badge " + (e.sex==="MALE"?"bd-m":"bd-f");
+    b4.style.fontSize = "9px";
+    b4.textContent = e.sex;
+    badges.appendChild(b4);
+  }
 
-      <div class="pf-section">
-        <div class="pf-section-title">HMO &amp; performance</div>
-        ${ipcr ? `
-          <div class="pf-ipcr" style="margin-bottom:12px;">
-            <div class="pf-ipcr-left">
-              <div class="label">IPCR Rating CY2025</div>
-              <div class="adj">${adjectival(ipcr.rating)}</div>
-            </div>
-            <div class="pf-ipcr-val">${ipcr.rating.toFixed(3)}</div>
-          </div>` :
-          `<div class="pf-field"><div class="pf-field-label">IPCR Rating CY2025</div><div class="pf-field-value">—</div></div>`
-        }
-        <div class="pf-field"><div class="pf-field-label">Item number</div><div class="pf-field-value" style="font-size:11px;">${e.item_no||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Org unit</div><div class="pf-field-value">${e.org_unit||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Office assignment</div><div class="pf-field-value">${e.office||"—"}</div></div>
-      </div>
+  info.appendChild(nameEl); info.appendChild(posEl); info.appendChild(offEl); info.appendChild(badges);
+  header.appendChild(avEl); header.appendChild(info);
 
-    </div>`;
+  // ── Build sections ──
+  function section(title, fields) {
+    const sec = document.createElement("div"); sec.className = "pf-section";
+    const ttl = document.createElement("div"); ttl.className = "pf-section-title"; ttl.textContent = title;
+    sec.appendChild(ttl);
+    fields.forEach(function(f){ sec.appendChild(f); });
+    return sec;
+  }
+
+  const secPersonal = section("Personal information", [
+    field("Full name",     e.name),
+    field("Date of birth", e.dob),
+    field("Age",           e.age != null ? e.age + " years old" : ""),
+    field("Sex",           e.sex),
+    field("TIN",           e.tin),
+  ]);
+
+  const secAppt = section("Appointment details", [
+    field("Status",               e.status),
+    field("Salary grade",         "SG " + (e.sg||"—")),
+    field("Position level",       e.pos_level),
+    field("Category",             e.category),
+    field("Nature of appointment",e.nature_appt),
+    field("Current status",       e.current_status),
+    field("Date of appointment",  e.date_appt),
+    field("Date of initial entry",e.date_initial),
+    field("Length of service",    e.length_svc != null ? e.length_svc + " year(s)" : ""),
+    field("Expected retirement",  (e.ret_date||"—") + retYears()),
+  ]);
+
+  const secEduc = section("Education & eligibility", [
+    field("Education",        e.education),
+    field("Highest attainment",e.highest_educ),
+    field("MPA / PhD / LLB",  e.mpa_phd),
+    field("Other certificate", e.other_cert),
+    field("Eligibility",       e.eligibility),
+  ]);
+
+  // IPCR section built with DOM
+  const secHmo = document.createElement("div"); secHmo.className = "pf-section";
+  const hmoTtl = document.createElement("div"); hmoTtl.className = "pf-section-title"; hmoTtl.textContent = "HMO & performance";
+  secHmo.appendChild(hmoTtl);
+
+  if (ipcr) {
+    const ipcrBox = document.createElement("div"); ipcrBox.className = "pf-ipcr"; ipcrBox.style.marginBottom = "12px";
+    const ipcrL   = document.createElement("div"); ipcrL.className = "pf-ipcr-left";
+    const ipcrLbl = document.createElement("div"); ipcrLbl.className = "label"; ipcrLbl.textContent = "IPCR Rating CY2025";
+    const ipcrAdj = document.createElement("div"); ipcrAdj.className = "adj"; ipcrAdj.textContent = adjectival(ipcr.rating);
+    const ipcrVal = document.createElement("div"); ipcrVal.className = "pf-ipcr-val"; ipcrVal.textContent = ipcr.rating.toFixed(3);
+    ipcrL.appendChild(ipcrLbl); ipcrL.appendChild(ipcrAdj);
+    ipcrBox.appendChild(ipcrL); ipcrBox.appendChild(ipcrVal);
+    secHmo.appendChild(ipcrBox);
+  } else {
+    secHmo.appendChild(field("IPCR Rating CY2025", "—"));
+  }
+  secHmo.appendChild(field("Item number",       e.item_no));
+  secHmo.appendChild(field("Org unit",           e.org_unit));
+  secHmo.appendChild(field("Office assignment",  e.office));
+
+  // ── Assemble ──
+  const grid = document.createElement("div"); grid.className = "pf-grid";
+  grid.appendChild(secPersonal);
+  grid.appendChild(secAppt);
+  grid.appendChild(secEduc);
+  grid.appendChild(secHmo);
+
+  const main = document.getElementById("pfMain");
+  main.innerHTML = "";
+  main.appendChild(header);
+  main.appendChild(grid);
 }
 
 // ── TABS ─────────────────────────────────────
@@ -677,34 +738,6 @@ function destroyChart(id) {
 
 // ── INIT ─────────────────────────────────────
 loadData();
-</script>
-</body>
-</html>
-<div class="pf-field"><div class="pf-field-label">Item number</div><div class="pf-field-value" style="font-size:11px;">${e.item_no||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Org unit</div><div class="pf-field-value">${e.org_unit||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Office assignment</div><div class="pf-field-value">${e.office||"—"}</div></div>
-      </div>
-    </div>`;
-}
-
-// ── TABS ─────────────────────────────────────
-function setTab(tab, el) {
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-  el.classList.add("active");
-  document.getElementById("tab-dashboard").style.display = tab==="dashboard" ? "block" : "none";
-  document.getElementById("tab-profile").style.display = tab==="profile" ? "grid" : "none";
-}
-
-// ── UTIL ─────────────────────────────────────
-function destroyChart(id) {
-  const chartStatus = Chart.getChart(id);
-  if (chartStatus !== undefined) {
-    chartStatus.destroy();
-  }
-}
-
-// ── INIT ─────────────────────────────────────
-window.onload = loadData;
 </script>
 </body>
 </html>
