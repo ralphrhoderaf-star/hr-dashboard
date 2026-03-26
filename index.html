@@ -295,14 +295,19 @@ const OFFICE_COLORS = {"PENRO Cebu":"#3b82f6","CENRO Cebu City":"#22c55e","CENRO
 
 let DATA = {};
 
-// ── LOAD ─────────────────────────────────────
+// Helper to remove accents/tildes for searching (e.g., Niño -> Nino)
+function cleanStr(str) {
+  if (!str) return "";
+  return str.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
 async function loadData() {
   document.getElementById("loadingScreen").classList.remove("hidden");
   document.getElementById("ldSub").textContent = "Fetching data from Google Sheets...";
   document.getElementById("errorBanner").style.display = "none";
 
   if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") {
-    showError("No Apps Script URL set. Open this file in a text editor, find APPS_SCRIPT_URL, and paste your deployed Web App URL.");
+    showError("No Apps Script URL set.");
     hideLoading(); return;
   }
 
@@ -314,7 +319,7 @@ async function loadData() {
     if (DATA.error) throw new Error(DATA.error);
     renderAll();
   } catch(err) {
-    showError("Could not load data: " + err.message + ". Check your Apps Script URL and deployment settings.");
+    showError("Could not load data: " + err.message);
   }
   hideLoading();
 }
@@ -322,19 +327,16 @@ async function loadData() {
 function hideLoading() {
   setTimeout(()=>document.getElementById("loadingScreen").classList.add("hidden"), 300);
 }
+
 function showError(msg) {
   const el = document.getElementById("errorBanner");
   el.textContent = msg; el.style.display = "block";
 }
 
-// ── RENDER ALL ────────────────────────────────
 function renderAll() {
   const d = new Date();
-  document.getElementById("hdrDate").textContent =
-    d.toLocaleDateString("en-PH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-  document.getElementById("hdrUpdated").textContent =
-    DATA.lastUpdated ? "Generated: " + DATA.lastUpdated : "";
-
+  document.getElementById("hdrDate").textContent = d.toLocaleDateString("en-PH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  document.getElementById("hdrUpdated").textContent = DATA.lastUpdated ? "Generated: " + DATA.lastUpdated : "";
   renderMetricCards();
   renderPlantillaTable();
   renderWorkforceStats();
@@ -344,22 +346,15 @@ function renderAll() {
   renderProfileList();
 }
 
-// ── METRIC CARDS ──────────────────────────────
 function renderMetricCards() {
   const s = DATA.summary || {};
   const cards = [
-    { label:"Filled positions", value:s.totalFilled||0,
-      sub: (s.totalFilled||0)+" of "+(s.totalItems||0)+" total items", color:"c-blue" },
-    { label:"Vacancies", value:s.totalUnfilled||0,
-      sub:"Plantilla unfilled", color:"c-amber" },
-    { label:"Retirees 2026–2031", value:s.retiringSoon||0,
-      sub:"Upcoming retirements", color:"c-red" },
-    { label:"HMO enrolled", value:s.hmoEnrolled||0,
-      sub:(s.hmoEnrolled||0)+" of "+(s.hmoTotal||0)+" permanent staff", color:"c-green" },
-    { label:"Training sessions", value:s.trainingSessions||0,
-      sub:(s.trainingHours||0).toLocaleString()+" total hours", color:"c-purple" },
+    { label:"Filled positions", value:s.totalFilled||0, sub: (s.totalFilled||0)+" of "+(s.totalItems||0)+" total items", color:"c-blue" },
+    { label:"Vacancies", value:s.totalUnfilled||0, sub:"Plantilla unfilled", color:"c-amber" },
+    { label:"Retirees 2026–2031", value:s.retiringSoon||0, sub:"Upcoming retirements", color:"c-red" },
+    { label:"HMO enrolled", value:s.hmoEnrolled||0, sub:(s.hmoEnrolled||0)+" of "+(s.hmoTotal||0)+" permanent staff", color:"c-green" },
+    { label:"Training sessions", value:s.trainingSessions||0, sub:(s.trainingHours||0).toLocaleString()+" total hours", color:"c-purple" },
   ];
-
   document.getElementById("metricCards").innerHTML = cards.map(c=>`
     <div class="mc ${c.color}">
       <div class="mc-label">${c.label}</div>
@@ -368,376 +363,138 @@ function renderMetricCards() {
     </div>`).join("");
 }
 
-// ── PLANTILLA TABLE ───────────────────────────
 function renderPlantillaTable() {
-  const s   = DATA.summary || {};
-  const byO = s.byOffice  || {};
-  document.getElementById("plantillaSub").textContent =
-    (s.totalFilled||0)+" filled · "+(s.totalUnfilled||0)+" vacant";
-
+  const s = DATA.summary || {};
+  const byO = s.byOffice || {};
+  document.getElementById("plantillaSub").textContent = (s.totalFilled||0)+" filled · "+(s.totalUnfilled||0)+" vacant";
   const rows = OFFICES.map(o => {
     const d = byO[o] || { total:0, filled:0, unfilled:0 };
     if (!d.total) return "";
     const pct = d.total ? Math.round(d.filled/d.total*100) : 0;
     const pillCls = pct===100?"pill-green":pct>=80?"pill-blue":pct>=50?"pill-amber":"pill-gray";
-    const barColor = OFFICE_COLORS[o]||"#94a3b8";
-    return `<tr>
-      <td>
-        <div class="wf-office">${OFFICE_SHORT[o]||o}</div>
-      </td>
-      <td class="r">${d.total}</td>
-      <td class="r">${d.filled}</td>
-      <td class="r">${d.unfilled||0}</td>
-      <td class="r">
-        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;">
-          <div class="fill-bar"><div class="fill-inner" style="width:${pct}%;background:${barColor};"></div></div>
-          <span class="pill ${pillCls}">${pct}%</span>
-        </div>
-      </td>
-    </tr>`;
+    return `<tr><td><div class="wf-office">${OFFICE_SHORT[o]||o}</div></td><td class="r">${d.total}</td><td class="r">${d.filled}</td><td class="r">${d.unfilled||0}</td><td class="r"><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><div class="fill-bar"><div class="fill-inner" style="width:${pct}%;background:${OFFICE_COLORS[o]||"#94a3b8"};"></div></div><span class="pill ${pillCls}">${pct}%</span></div></td></tr>`;
   }).join("");
-
-  // Totals row
-  const totalFilled   = Object.values(byO).reduce((s,o)=>s+(o.filled||0),0);
-  const totalUnfilled = Object.values(byO).reduce((s,o)=>s+(o.unfilled||0),0);
-  const grandTotal    = totalFilled + totalUnfilled;
-  const totalPct      = grandTotal ? Math.round(totalFilled/grandTotal*100) : 0;
-
-  document.getElementById("plantillaTable").innerHTML = rows + `
-    <tr style="background:var(--surf2);font-weight:500;">
-      <td><div class="wf-office">Total</div></td>
-      <td class="r">${grandTotal}</td>
-      <td class="r">${totalFilled}</td>
-      <td class="r">${totalUnfilled}</td>
-      <td class="r"><span class="pill ${totalPct>=80?"pill-blue":"pill-amber"}">${totalPct}%</span></td>
-    </tr>`;
+  document.getElementById("plantillaTable").innerHTML = rows;
 }
 
-// ── WORKFORCE STATS ───────────────────────────
 function renderWorkforceStats() {
   const s = DATA.summary || {};
   const filled = (DATA.employees||[]).filter(e=>e.vacancy==="filled");
-
-  const html = `
-    <div class="kpi-row" style="margin-bottom:16px;">
-      <div class="kpi">
-        <div class="kpi-val">${s.avgAge||"--"}</div>
-        <div class="kpi-lbl">Average age</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-val">${s.avgService||"--"}</div>
-        <div class="kpi-lbl">Avg service (yrs)</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-val">${s.avgIpcr||"--"}</div>
-        <div class="kpi-lbl">Avg IPCR</div>
-      </div>
-    </div>
-    <div class="stat-row">
-      <span class="stat-name">Male</span>
-      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.male,filled.length)}%;background:#3b82f6;"></div></div>
-      <span class="stat-cnt">${s.male||0}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-name">Female</span>
-      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.female,filled.length)}%;background:#ec4899;"></div></div>
-      <span class="stat-cnt">${s.female||0}</span>
-    </div>
-    <div class="stat-row" style="margin-top:8px;">
-      <span class="stat-name">Permanent</span>
-      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.permanent,filled.length)}%;background:#3b82f6;"></div></div>
-      <span class="stat-cnt">${s.permanent||0}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-name">CTI</span>
-      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.cti,filled.length)}%;background:#a855f7;"></div></div>
-      <span class="stat-cnt">${s.cti||0}</span>
-    </div>
-    <div class="stat-row" style="margin-top:8px;">
-      <span class="stat-name">Second level</span>
-      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.secondLevel,filled.length)}%;background:#0f766e;"></div></div>
-      <span class="stat-cnt">${s.secondLevel||0}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-name">First level</span>
-      <div class="stat-track"><div class="stat-fill" style="width:${pct(s.firstLevel,filled.length)}%;background:#22c55e;"></div></div>
-      <span class="stat-cnt">${s.firstLevel||0}</span>
-    </div>`;
-
+  const getPct = (v,t) => t ? Math.round((v||0)/t*100) : 0;
+  const html = `<div class="kpi-row" style="margin-bottom:16px;"><div class="kpi"><div class="kpi-val">${s.avgAge||"--"}</div><div class="kpi-lbl">Average age</div></div><div class="kpi"><div class="kpi-val">${s.avgService||"--"}</div><div class="kpi-lbl">Avg service (yrs)</div></div><div class="kpi"><div class="kpi-val">${s.avgIpcr||"--"}</div><div class="kpi-lbl">Avg IPCR</div></div></div>
+    <div class="stat-row"><span class="stat-name">Male</span><div class="stat-track"><div class="stat-fill" style="width:${getPct(s.male,filled.length)}%;background:#3b82f6;"></div></div><span class="stat-cnt">${s.male||0}</span></div>
+    <div class="stat-row"><span class="stat-name">Female</span><div class="stat-track"><div class="stat-fill" style="width:${getPct(s.female,filled.length)}%;background:#ec4899;"></div></div><span class="stat-cnt">${s.female||0}</span></div>`;
   document.getElementById("workforceStats").innerHTML = html;
 }
 
-function pct(v,t){return t?Math.round((v||0)/t*100):0;}
-
-// ── CHARTS ────────────────────────────────────
 function renderGenderChart() {
   destroyChart("genderChart");
   const s = DATA.summary||{};
   const m = s.male||0, f = s.female||0;
-  new Chart(document.getElementById("genderChart"),{
-    type:"doughnut",
-    data:{labels:["Male "+m,"Female "+f],datasets:[{data:[m,f],backgroundColor:["#3b82f6","#ec4899"],borderWidth:3,borderColor:"#fff"}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:"65%",
-      plugins:{legend:{position:"bottom",labels:{font:{size:11,family:"DM Sans"},color:"#64748b",boxWidth:10,padding:12}},
-      tooltip:{callbacks:{label:c=>" "+c.parsed+" ("+Math.round(c.parsed/(m+f)*100)+"%)"}}}}}
-  });
+  new Chart(document.getElementById("genderChart"),{type:"doughnut",data:{labels:["Male","Female"],datasets:[{data:[m,f],backgroundColor:["#3b82f6","#ec4899"]}]},options:{responsive:true,maintainAspectRatio:false,cutout:"65%"}});
 }
 
 function renderLevelChart() {
   destroyChart("levelChart");
   const s = DATA.summary||{};
   const sec = s.secondLevel||0, fst = s.firstLevel||0;
-  new Chart(document.getElementById("levelChart"),{
-    type:"doughnut",
-    data:{labels:["Second Level "+sec,"First Level "+fst],datasets:[{data:[sec,fst],backgroundColor:["#0f766e","#22c55e"],borderWidth:3,borderColor:"#fff"}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:"65%",
-      plugins:{legend:{position:"bottom",labels:{font:{size:11,family:"DM Sans"},color:"#64748b",boxWidth:10,padding:12}},
-      tooltip:{callbacks:{label:c=>" "+c.parsed+" ("+Math.round(c.parsed/(sec+fst)*100)+"%)"}}}}}
-  });
+  new Chart(document.getElementById("levelChart"),{type:"doughnut",data:{labels:["2nd Level","1st Level"],datasets:[{data:[sec,fst],backgroundColor:["#0f766e","#22c55e"]}]},options:{responsive:true,maintainAspectRatio:false,cutout:"65%"}});
 }
 
 function renderTrainingStats() {
   const t = DATA.training||{};
   const byType = t.byType||{};
-  const total  = t.total||1;
-
-  document.getElementById("trainingSub").textContent =
-    (t.total||0)+" sessions · "+(t.totalHours||0)+"h";
-
-  const typeColors = {"Technical":"#3b82f6","Administrative":"#22c55e","Leadership":"#f59e0b","Mandatory":"#a855f7","Organizational":"#0f766e"};
-
-  document.getElementById("trainingStats").innerHTML = Object.entries(byType)
-    .sort((a,b)=>b[1]-a[1])
-    .map(([type,cnt])=>`
-      <div class="stat-row">
-        <span class="stat-name">${type}</span>
-        <div class="stat-track"><div class="stat-fill" style="width:${Math.round(cnt/total*100)}%;background:${typeColors[type]||"#94a3b8"};"></div></div>
-        <span class="stat-cnt">${cnt}</span>
-      </div>`).join("");
+  document.getElementById("trainingSub").textContent = (t.total||0)+" sessions";
+  document.getElementById("trainingStats").innerHTML = Object.entries(byType).map(([type,cnt])=>`<div class="stat-row"><span class="stat-name">${type}</span><div class="stat-track"><div class="stat-fill" style="width:${Math.round(cnt/(t.total||1)*100)}%;background:#3b82f6;"></div></div><span class="stat-cnt">${cnt}</span></div>`).join("");
 }
 
-// ── EMPLOYEE PROFILE ──────────────────────────
+// ── EMPLOYEE PROFILE (Ñ HANDLED) ──────────────────
 
-// Safely set text on a DOM element — handles all special characters
-function txt(el, val) { el.textContent = val || "—"; }
-
-// Build a label/value field safely using DOM
 function field(label, value) {
-  const wrap  = document.createElement("div"); wrap.className  = "pf-field";
-  const lbl   = document.createElement("div"); lbl.className   = "pf-field-label"; lbl.textContent = label;
-  const val   = document.createElement("div"); val.className   = "pf-field-value"; val.textContent = value || "—";
+  const wrap = document.createElement("div"); wrap.className = "pf-field";
+  const lbl = document.createElement("div"); lbl.className = "pf-field-label"; lbl.textContent = label;
+  const val = document.createElement("div"); val.className = "pf-field-value"; val.textContent = value || "—";
   wrap.appendChild(lbl); wrap.appendChild(val);
   return wrap;
 }
 
-function renderProfileList() { filterProfiles(); }
-
 function filterProfiles() {
-  const q   = document.getElementById("pfSearch").value.toLowerCase();
-  const emp = (DATA.employees||[]).filter(e =>
-    !q || e.name.toLowerCase().includes(q) ||
-    (e.position||"").toLowerCase().includes(q) ||
-    (e.office||"").toLowerCase().includes(q)
-  );
+  const q = cleanStr(document.getElementById("pfSearch").value);
+  const emp = (DATA.employees||[]).filter(e => !q || cleanStr(e.name).includes(q) || cleanStr(e.position).includes(q));
 
   document.getElementById("pfCount").textContent = emp.length + " employees";
   const list = document.getElementById("pfList");
   list.innerHTML = "";
 
-  if (!emp.length) {
-    const msg = document.createElement("div");
-    msg.style.cssText = "text-align:center;padding:32px 16px;color:var(--text3);font-size:12px;";
-    msg.textContent = "No employees found.";
-    list.appendChild(msg);
-    return;
-  }
-
-  emp.forEach(function(e) {
-    const idx      = (DATA.employees||[]).indexOf(e);
-    const initials = e.name.split(" ").map(function(w){return w[0]||"";}).filter(Boolean).slice(0,2).join("");
-    const color    = OFFICE_COLORS[e.office]||"#64748b";
-
+  emp.forEach(e => {
+    const idx = (DATA.employees||[]).indexOf(e);
     const item = document.createElement("div");
     item.className = "sidebar-item";
     item.id = "si-" + idx;
-    item.dataset.idx = idx;
-
-    const avatar = document.createElement("div");
-    avatar.className = "si-avatar";
-    avatar.style.cssText = "background:" + color + "22;color:" + color + ";";
-    avatar.textContent = initials;
-
-    const info = document.createElement("div");
-    info.style.cssText = "min-width:0;flex:1;";
-
-    const name = document.createElement("div"); name.className = "si-name";
-    name.textContent = e.name;
-
-    const sub = document.createElement("div"); sub.className = "si-sub";
-    sub.textContent = e.position.length > 40 ? e.position.substring(0,40)+"..." : e.position;
-
-    info.appendChild(name); info.appendChild(sub);
-    item.appendChild(avatar); item.appendChild(info);
-
-    item.addEventListener("click", function() { showProfile(parseInt(item.dataset.idx)); });
+    item.innerHTML = `<div class="si-avatar" style="background:${OFFICE_COLORS[e.office]||"#64748b"}22; color:${OFFICE_COLORS[e.office]||"#64748b"};">${e.name.charAt(0)}</div><div style="min-width:0;flex:1;"><div class="si-name">${e.name}</div><div class="si-sub">${e.position}</div></div>`;
+    item.onclick = () => showProfile(idx);
     list.appendChild(item);
   });
 }
 
+function renderProfileList() { filterProfiles(); }
+
 function showProfile(idx) {
-  document.querySelectorAll(".sidebar-item").forEach(function(el){ el.classList.remove("active"); });
+  document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
   const sel = document.getElementById("si-" + idx);
   if (sel) sel.classList.add("active");
 
-  const e = (DATA.employees||[])[idx];
-  if (!e) return;
-
-  const initials = e.name.split(" ").map(function(w){return w[0]||"";}).filter(Boolean).slice(0,2).join("");
-  const color    = OFFICE_COLORS[e.office]||"#1b3464";
-
-  const ipcr = (DATA.ipcr||[]).find(function(r) {
-    const rn    = r.name.toUpperCase();
-    const parts = e.name.toUpperCase().split(" ").filter(Boolean);
-    return parts.length >= 2 && rn.includes(parts[0]) && rn.includes(parts[parts.length-1]);
-  });
-
-  function adjectival(r) {
-    if (!r) return "—";
-    if (r >= 5) return "Outstanding";
-    if (r >= 4) return "Very Satisfactory";
-    if (r >= 3) return "Satisfactory";
-    if (r >= 2) return "Unsatisfactory";
-    return "Poor";
-  }
-
-  function retYears() {
-    if (!e.ret_date) return "";
-    const diff = new Date(e.ret_date).getFullYear() - new Date().getFullYear();
-    if (diff <= 0) return " · Due for retirement";
-    if (diff === 1) return " · Retiring next year";
-    return " · Retiring in " + diff + " years";
-  }
-
-  // ── Build profile header ──
-  const header = document.createElement("div"); header.className = "pf-header";
-
-  const avEl = document.createElement("div"); avEl.className = "pf-avatar-lg";
-  avEl.style.cssText = "background:" + color + "33;color:#e2e8f0;";
-  avEl.textContent = initials;
-
-  const info = document.createElement("div");
-
-  const nameEl = document.createElement("div"); nameEl.className = "pf-title"; nameEl.textContent = e.name;
-  const posEl  = document.createElement("div"); posEl.className  = "pf-pos-txt"; posEl.textContent = e.position;
-  const offEl  = document.createElement("div"); offEl.className  = "pf-office-txt";
-  offEl.textContent = (e.office||"") + " · " + (e.org_unit||"");
-
-  const badges = document.createElement("div"); badges.className = "pf-badges";
-  const b1 = document.createElement("span"); b1.className = "pf-badge " + (e.status==="PERMANENT"?"perm":"cti"); b1.textContent = e.status||"";
-  const b2 = document.createElement("span"); b2.className = "pf-badge sg"; b2.textContent = "SG " + (e.sg||"—");
-  const b3 = document.createElement("span"); b3.className = "pf-badge lvl"; b3.textContent = e.pos_level||"—";
-  badges.appendChild(b1); badges.appendChild(b2); badges.appendChild(b3);
-  if (e.sex) {
-    const b4 = document.createElement("span");
-    b4.className = "badge " + (e.sex==="MALE"?"bd-m":"bd-f");
-    b4.style.fontSize = "9px";
-    b4.textContent = e.sex;
-    badges.appendChild(b4);
-  }
-
-  info.appendChild(nameEl); info.appendChild(posEl); info.appendChild(offEl); info.appendChild(badges);
-  header.appendChild(avEl); header.appendChild(info);
-
-  // ── Build sections ──
-  function section(title, fields) {
-    const sec = document.createElement("div"); sec.className = "pf-section";
-    const ttl = document.createElement("div"); ttl.className = "pf-section-title"; ttl.textContent = title;
-    sec.appendChild(ttl);
-    fields.forEach(function(f){ sec.appendChild(f); });
-    return sec;
-  }
-
-  const secPersonal = section("Personal information", [
-    field("Full name",     e.name),
-    field("Date of birth", e.dob),
-    field("Age",           e.age != null ? e.age + " years old" : ""),
-    field("Sex",           e.sex),
-    field("TIN",           e.tin),
-  ]);
-
-  const secAppt = section("Appointment details", [
-    field("Status",               e.status),
-    field("Salary grade",         "SG " + (e.sg||"—")),
-    field("Position level",       e.pos_level),
-    field("Category",             e.category),
-    field("Nature of appointment",e.nature_appt),
-    field("Current status",       e.current_status),
-    field("Date of appointment",  e.date_appt),
-    field("Date of initial entry",e.date_initial),
-    field("Length of service",    e.length_svc != null ? e.length_svc + " year(s)" : ""),
-    field("Expected retirement",  (e.ret_date||"—") + retYears()),
-  ]);
-
-  const secEduc = section("Education & eligibility", [
-    field("Education",        e.education),
-    field("Highest attainment",e.highest_educ),
-    field("MPA / PhD / LLB",  e.mpa_phd),
-    field("Other certificate", e.other_cert),
-    field("Eligibility",       e.eligibility),
-  ]);
-
-  // IPCR section built with DOM
-  const secHmo = document.createElement("div"); secHmo.className = "pf-section";
-  const hmoTtl = document.createElement("div"); hmoTtl.className = "pf-section-title"; hmoTtl.textContent = "HMO & performance";
-  secHmo.appendChild(hmoTtl);
-
-  if (ipcr) {
-    const ipcrBox = document.createElement("div"); ipcrBox.className = "pf-ipcr"; ipcrBox.style.marginBottom = "12px";
-    const ipcrL   = document.createElement("div"); ipcrL.className = "pf-ipcr-left";
-    const ipcrLbl = document.createElement("div"); ipcrLbl.className = "label"; ipcrLbl.textContent = "IPCR Rating CY2025";
-    const ipcrAdj = document.createElement("div"); ipcrAdj.className = "adj"; ipcrAdj.textContent = adjectival(ipcr.rating);
-    const ipcrVal = document.createElement("div"); ipcrVal.className = "pf-ipcr-val"; ipcrVal.textContent = ipcr.rating.toFixed(3);
-    ipcrL.appendChild(ipcrLbl); ipcrL.appendChild(ipcrAdj);
-    ipcrBox.appendChild(ipcrL); ipcrBox.appendChild(ipcrVal);
-    secHmo.appendChild(ipcrBox);
-  } else {
-    secHmo.appendChild(field("IPCR Rating CY2025", "—"));
-  }
-  secHmo.appendChild(field("Item number",       e.item_no));
-  secHmo.appendChild(field("Org unit",           e.org_unit));
-  secHmo.appendChild(field("Office assignment",  e.office));
-
-  // ── Assemble ──
-  const grid = document.createElement("div"); grid.className = "pf-grid";
-  grid.appendChild(secPersonal);
-  grid.appendChild(secAppt);
-  grid.appendChild(secEduc);
-  grid.appendChild(secHmo);
+  const e = DATA.employees[idx];
+  const ipcr = (DATA.ipcr||[]).find(r => cleanStr(r.name).includes(cleanStr(e.name.split(',')[0])));
 
   const main = document.getElementById("pfMain");
   main.innerHTML = "";
+
+  // Header
+  const header = document.createElement("div");
+  header.className = "pf-header";
+  header.innerHTML = `<div class="pf-avatar-lg" style="background:${OFFICE_COLORS[e.office]||"#1b3464"}33;">${e.name.charAt(0)}</div><div><div class="pf-title">${e.name}</div><div class="pf-pos-txt">${e.position}</div><div class="pf-office-txt">${e.office}</div></div>`;
   main.appendChild(header);
+
+  // Grid
+  const grid = document.createElement("div");
+  grid.className = "pf-grid";
+
+  const secPers = document.createElement("div"); secPers.className = "pf-section";
+  secPers.innerHTML = `<div class="pf-section-title">Personal info</div>`;
+  secPers.appendChild(field("Birth Date", e.dob));
+  secPers.appendChild(field("Age", e.age));
+  secPers.appendChild(field("Sex", e.sex));
+
+  const secAppt = document.createElement("div"); secAppt.className = "pf-section";
+  secAppt.innerHTML = `<div class="pf-section-title">Appointment</div>`;
+  secAppt.appendChild(field("Status", e.status));
+  secAppt.appendChild(field("Salary Grade", "SG " + e.sg));
+  secAppt.appendChild(field("Entry Date", e.date_initial));
+
+  grid.appendChild(secPers);
+  grid.appendChild(secAppt);
   main.appendChild(grid);
+
+  if (ipcr) {
+    const ipcrBox = document.createElement("div");
+    ipcrBox.className = "pf-ipcr";
+    ipcrBox.innerHTML = `<div class="pf-ipcr-left"><div class="label">Latest IPCR</div><div class="adj">Rating</div></div><div class="pf-ipcr-val">${ipcr.rating}</div>`;
+    main.appendChild(ipcrBox);
+  }
 }
 
-// ── TABS ─────────────────────────────────────
-function setTab(tab, el) {
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+function setTab(tabId, el) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   el.classList.add("active");
-  document.getElementById("tab-dashboard").style.display = tab==="dashboard" ? "block"  : "none";
-  document.getElementById("tab-profile").style.display   = tab==="profile"   ? "grid"   : "none";
+  document.getElementById("tab-dashboard").style.display = tabId === 'dashboard' ? 'block' : 'none';
+  document.getElementById("tab-profile").style.display = tabId === 'profile' ? 'grid' : 'none';
 }
 
-// ── UTIL ─────────────────────────────────────
 function destroyChart(id) {
-  const canvas = document.getElementById(id);
-  if (!canvas) return;
-  const ex = Chart.getChart(canvas);
-  if (ex) ex.destroy();
+  const chart = Chart.getChart(id);
+  if (chart) chart.destroy();
 }
 
-// ── INIT ─────────────────────────────────────
-loadData();
+window.onload = loadData;
 </script>
-</body>
-</html>
