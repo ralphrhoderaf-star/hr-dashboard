@@ -651,35 +651,6 @@ function showProfile(idx) {
           </div>` :
           `<div class="pf-field"><div class="pf-field-label">IPCR Rating CY2025</div><div class="pf-field-value">—</div></div>`
         }
-        <div class="pf-field"><div class="pf-field-label">Item number</div><div class="pf-field-value" style="font-size:11px;">${e.item_no||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Org unit</div><div class="pf-field-value">${e.org_unit||"—"}</div></div>
-        <div class="pf-field"><div class="pf-field-label">Office assignment</div><div class="pf-field-value">${e.office||"—"}</div></div>
-      </div>
-
-    </div>`;
-}
-
-// ── TABS ─────────────────────────────────────
-function setTab(tab, el) {
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-  el.classList.add("active");
-  document.getElementById("tab-dashboard").style.display = tab==="dashboard" ? "block"  : "none";
-  document.getElementById("tab-profile").style.display   = tab==="profile"   ? "grid"   : "none";
-}
-
-// ── UTIL ─────────────────────────────────────
-function destroyChart(id) {
-  const canvas = document.getElementById(id);
-  if (!canvas) return;
-  const ex = Chart.getChart(canvas);
-  if (ex) ex.destroy();
-}
-
-// ── INIT ─────────────────────────────────────
-loadData();
-</script>
-</body>
-</html>
 <div class="pf-field"><div class="pf-field-label">Item number</div><div class="pf-field-value" style="font-size:11px;">${e.item_no||"—"}</div></div>
         <div class="pf-field"><div class="pf-field-label">Org unit</div><div class="pf-field-value">${e.org_unit||"—"}</div></div>
         <div class="pf-field"><div class="pf-field-label">Office assignment</div><div class="pf-field-value">${e.office||"—"}</div></div>
