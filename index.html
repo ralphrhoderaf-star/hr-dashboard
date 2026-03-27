@@ -4,497 +4,516 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PENRO Cebu — HR Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --navy:#09182e;--navy2:#112040;--navy3:#1b3464;
-  --accent:#3b82f6;
-  --green:#22c55e;--green-bg:#dcfce7;--green-tx:#15803d;
-  --amber:#f59e0b;--amber-bg:#fef3c7;--amber-tx:#92400e;
-  --red:#ef4444;--red-bg:#fee2e2;--red-tx:#991b1b;
-  --blue-bg:#dbeafe;--blue-tx:#1d4ed8;
-  --purple-bg:#f3e8ff;--purple-tx:#7e22ce;
-  --teal-bg:#ccfbf1;--teal-tx:#0f766e;
-  --gray-bg:#f1f5f9;--gray-tx:#475569;
-  --border:#e2e8f0;--text1:#0f172a;--text2:#64748b;--text3:#94a3b8;
-  --surf:#fff;--surf2:#f8fafc;
+  --bg:#f8fafc;--card:#fff;--primary:#0f172a;--accent:#2563eb;
+  --muted:#64748b;--border:#e2e8f0;--blue-light:#dbeafe;--blue-dark:#1e3a8a;
+  --green-bg:#dcfce7;--green-tx:#15803d;--amber-bg:#fef3c7;--amber-tx:#92400e;
+  --red-bg:#fee2e2;--red-tx:#991b1b;--purple-bg:#f3e8ff;--purple-tx:#7e22ce;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',sans-serif;background:var(--surf2);color:var(--text1);min-height:100vh;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--primary);}
 
-/* LOADING */
-.loading{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999;transition:opacity .4s;}
-.loading.hidden{opacity:0;pointer-events:none;}
-.spinner{width:24px;height:24px;border:2px solid #1b3464;border-top-color:#3b82f6;border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.ld-title{font-size:14px;font-weight:500;color:#e2e8f0;}
-.ld-sub{font-size:11px;color:#475569;font-family:'DM Mono',monospace;}
+.header{background:var(--primary);color:#fff;padding:18px 28px;}
+.header-title{font-size:18px;font-weight:700;letter-spacing:.3px;}
+.header-sub{font-size:11px;color:#94a3b8;margin-top:3px;}
+.header-row2{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+.header-asof{font-size:11px;color:#93c5fd;font-style:italic;}
+.header-updated{font-size:10px;color:#334155;}
+.refresh-btn{font-size:11px;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;}
 
-/* HEADER */
-.hdr{background:var(--navy);padding:0 28px;}
-.hdr-top{display:flex;justify-content:space-between;align-items:center;padding:18px 0 14px;border-bottom:1px solid rgba(255,255,255,0.07);}
-.hdr-brand{font-size:10px;font-family:'DM Mono',monospace;color:#334155;letter-spacing:.04em;}
-.hdr-title{font-size:15px;font-weight:500;color:#e2e8f0;margin-top:3px;}
-.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
-.hdr-date{font-size:11px;color:#475569;font-family:'DM Mono',monospace;}
-.hdr-asof{font-size:10px;color:#334155;font-family:'DM Mono',monospace;}
-.hdr-updated{font-size:10px;color:#1e3a5f;font-family:'DM Mono',monospace;}
-.refresh-btn{font-size:10px;color:#3b82f6;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;text-decoration:underline;text-underline-offset:2px;}
-.refresh-btn:hover{color:#93c5fd;}
+.nav-tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);padding:0 28px;}
+.tab{padding:13px 20px;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);}
+.tab.active{border-bottom-color:var(--accent);color:var(--accent);}
 
-/* TABS */
-.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surf);padding:0 28px;}
-.tab{font-size:12px;font-weight:500;padding:11px 18px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px;white-space:nowrap;}
-.tab:hover{color:var(--text1);}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.container{padding:24px 28px;display:none;}
+.container.active{display:block;}
 
-/* ERROR */
-.error-banner{background:var(--red-bg);border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin:16px;font-size:12px;color:var(--red-tx);display:none;}
+#loading{padding:40px;text-align:center;color:var(--accent);font-weight:500;font-size:14px;}
+.error{background:var(--red-bg);color:var(--red-tx);padding:12px 16px;border-radius:6px;margin:16px 28px;font-size:12px;display:none;}
 
-/* ═══════════════════════════════════════════
-   DASHBOARD TAB
-═══════════════════════════════════════════ */
-.dash-body{padding:24px 28px;}
+/* ── METRIC CARDS ── */
+.metrics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px;}
+.mc{background:var(--card);padding:18px;border-radius:8px;border:1px solid var(--border);border-top:4px solid var(--accent);}
+.mc.green{border-top-color:#16a34a;}.mc.red{border-top-color:#dc2626;}
+.mc.amber{border-top-color:#d97706;}.mc.purple{border-top-color:#9333ea;}
+.mc-title{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:600;letter-spacing:.5px;}
+.mc-value{font-size:30px;font-weight:700;color:var(--primary);margin:6px 0 2px;}
+.mc-sub{font-size:11px;color:var(--muted);}
 
-/* Top metric cards */
-.metric-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:24px;}
-.mc{background:var(--surf);border:0.5px solid var(--border);border-radius:10px;padding:16px 18px;border-top:3px solid transparent;transition:box-shadow .15s;}
-.mc:hover{box-shadow:0 2px 12px rgba(0,0,0,0.06);}
-.mc.c-blue{border-top-color:#3b82f6;}
-.mc.c-green{border-top-color:#22c55e;}
-.mc.c-amber{border-top-color:#f59e0b;}
-.mc.c-red{border-top-color:#ef4444;}
-.mc.c-purple{border-top-color:#a855f7;}
-.mc-label{font-size:10px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;}
-.mc-value{font-size:28px;font-weight:600;color:var(--text1);line-height:1;font-variant-numeric:tabular-nums;}
-.mc-sub{font-size:11px;color:var(--text2);margin-top:5px;}
+/* ── DASHBOARD GRID ── */
+.dash-grid{display:grid;grid-template-columns:1.8fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.dash-grid2{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px 20px;}
+.card-header{font-size:12px;font-weight:700;color:var(--primary);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.card-header-sub{font-size:10px;color:var(--muted);font-weight:400;}
 
-/* Two-column main layout */
-.dash-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;}
-.dash-grid-3{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,0.8fr) minmax(0,1fr);gap:16px;margin-top:16px;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:10px;text-transform:uppercase;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);font-weight:600;}
+td{padding:9px 0;border-bottom:1px solid var(--border);font-size:12px;}
+td.r{text-align:right;font-weight:500;}
+tr:last-child td{border-bottom:none;}
 
-/* Cards */
-.card{background:var(--surf);border:0.5px solid var(--border);border-radius:10px;padding:16px 18px;}
-.card-title{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
-.card-title-right{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;font-weight:400;}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.stat-row:last-child{border-bottom:none;}
+.stat-label{font-size:12px;color:var(--muted);}
+.stat-val{font-size:12px;font-weight:600;color:var(--primary);}
 
-/* Workforce table */
-.wf-table{width:100%;border-collapse:collapse;}
-.wf-table th{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;padding:0 6px 8px 0;text-align:left;border-bottom:1px solid var(--border);}
-.wf-table th.r{text-align:right;}
-.wf-table td{padding:8px 6px 8px 0;font-size:12px;border-bottom:0.5px solid var(--border);vertical-align:middle;}
-.wf-table tbody tr:last-child td{border-bottom:none;}
-.wf-table td.r{text-align:right;}
-.wf-office{font-weight:500;color:var(--text1);}
-.wf-mini{font-size:10px;color:var(--text3);margin-top:1px;}
-.fill-bar{height:4px;border-radius:2px;background:var(--gray-bg);overflow:hidden;width:60px;}
-.fill-inner{height:4px;border-radius:2px;}
-.pill{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;}
+.bar-row{display:flex;align-items:center;gap:8px;padding:5px 0;}
+.bar-label{font-size:11px;color:var(--primary);width:80px;flex-shrink:0;}
+.bar-track{flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;}
+.bar-fill{height:5px;border-radius:3px;background:var(--accent);}
+.bar-count{font-size:11px;font-weight:600;color:var(--primary);min-width:28px;text-align:right;}
+
+.pill{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:600;}
 .pill-green{background:var(--green-bg);color:var(--green-tx);}
 .pill-amber{background:var(--amber-bg);color:var(--amber-tx);}
-.pill-blue{background:var(--blue-bg);color:var(--blue-tx);}
-.pill-gray{background:var(--gray-bg);color:var(--gray-tx);}
+.pill-blue{background:var(--blue-light);color:#1d4ed8;}
+.pill-red{background:var(--red-bg);color:var(--red-tx);}
 
-/* Stat rows */
-.stat-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
-.stat-row:last-child{margin-bottom:0;}
-.stat-name{font-size:11px;color:var(--text1);min-width:90px;flex-shrink:0;}
-.stat-track{flex:1;height:4px;background:var(--gray-bg);border-radius:2px;overflow:hidden;}
-.stat-fill{height:4px;border-radius:2px;}
-.stat-cnt{font-size:11px;font-weight:500;font-family:'DM Mono',monospace;color:var(--text2);min-width:24px;text-align:right;}
+/* ── PROFILE TAB ── */
+.profile-layout{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 130px);gap:0;}
+.pf-sidebar{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;}
+.pf-search{padding:12px;border-bottom:1px solid var(--border);}
+.pf-search input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:12px;outline:none;font-family:inherit;}
+.pf-search input:focus{border-color:var(--accent);}
+.pf-count{font-size:10px;color:var(--muted);padding:6px 12px 0;}
+.pf-list{flex:1;overflow-y:auto;}
+.pf-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;}
+.pf-item:hover{background:var(--bg);}
+.pf-item.active{background:var(--blue-light);border-left:3px solid var(--accent);}
+.pf-item-name{font-size:12px;font-weight:600;color:var(--primary);}
+.pf-item-pos{font-size:10px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-/* Charts */
-.chart-wrap{position:relative;}
-
-/* KPI row */
-.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.kpi{padding:10px 12px;background:var(--surf2);border-radius:8px;text-align:center;}
-.kpi-val{font-size:20px;font-weight:600;color:var(--text1);font-variant-numeric:tabular-nums;}
-.kpi-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}
-
-/* ═══════════════════════════════════════════
-   EMPLOYEE PROFILE TAB
-═══════════════════════════════════════════ */
-.profile-body{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:calc(100vh - 110px);}
-.profile-sidebar{border-right:1px solid var(--border);background:var(--surf);display:flex;flex-direction:column;}
-.sidebar-search{padding:16px 16px 10px;}
-.sidebar-search-wrap{position:relative;}
-.si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px;pointer-events:none;}
-.search-input{width:100%;padding:7px 10px 7px 28px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--surf2);color:var(--text1);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;}
-.search-input:focus{border-color:var(--accent);background:var(--surf);}
-.sidebar-count{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;padding:0 16px 8px;}
-.sidebar-list{flex:1;overflow-y:auto;}
-.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-bottom:0.5px solid var(--border);transition:background .1s;}
-.sidebar-item:hover{background:var(--surf2);}
-.sidebar-item.active{background:#eff6ff;border-right:3px solid var(--accent);}
-.si-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
-.si-name{font-size:12px;font-weight:500;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.si-sub{font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px;}
-.profile-main{padding:24px 28px;background:var(--surf2);overflow-y:auto;}
-.profile-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:10px;padding:60px 0;}
-.profile-empty-icon{width:40px;height:40px;border-radius:50%;background:var(--gray-bg);display:flex;align-items:center;justify-content:center;font-size:18px;}
-.profile-empty-text{font-size:13px;}
-
-/* Profile card */
-.pf-header{background:var(--navy);border-radius:10px;padding:20px 22px;margin-bottom:16px;display:flex;align-items:center;gap:16px;}
-.pf-avatar-lg{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0;border:2px solid rgba(255,255,255,0.15);}
-.pf-title{font-size:16px;font-weight:600;color:#e2e8f0;}
-.pf-pos-txt{font-size:12px;color:#93c5fd;margin-top:3px;}
-.pf-office-txt{font-size:11px;color:#64748b;margin-top:2px;}
-.pf-badges{display:flex;gap:6px;margin-top:8px;}
-.pf-badge{font-size:9px;font-weight:600;padding:2px 8px;border-radius:4px;}
+.pf-main{padding-left:20px;overflow-y:auto;}
+.pf-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;}
+.pf-header{background:var(--blue-dark);color:#fff;padding:22px 24px;border-radius:8px;margin-bottom:16px;}
+.pf-header-name{font-size:20px;font-weight:700;margin-bottom:4px;}
+.pf-header-pos{font-size:13px;color:var(--blue-light);margin-bottom:2px;}
+.pf-header-off{font-size:11px;color:#93c5fd;}
+.pf-header-badges{display:flex;gap:6px;margin-top:10px;}
+.pf-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;}
 .pf-badge.perm{background:#1d4ed8;color:#dbeafe;}
 .pf-badge.cti{background:#6b21a8;color:#f3e8ff;}
-.pf-badge.sg{background:rgba(255,255,255,0.1);color:#93c5fd;}
-.pf-badge.lvl{background:rgba(255,255,255,0.08);color:#64748b;}
+.pf-badge.sg{background:rgba(255,255,255,.12);color:#bfdbfe;}
+.pf-badge.lvl{background:rgba(255,255,255,.08);color:#93c5fd;}
 
-.pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
-.pf-section{background:var(--surf);border:0.5px solid var(--border);border-radius:10px;padding:16px 18px;}
-.pf-section-title{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid var(--border);}
-.pf-field{display:flex;flex-direction:column;gap:2px;margin-bottom:10px;}
+.pf-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.pf-section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
+.pf-section-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.pf-field{margin-bottom:9px;}
 .pf-field:last-child{margin-bottom:0;}
-.pf-field-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
-.pf-field-value{font-size:12px;font-weight:500;color:var(--text1);line-height:1.4;}
+.pf-label{font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:1px;}
+.pf-value{font-size:12px;font-weight:500;color:var(--primary);}
 
-.pf-ipcr{background:var(--navy);border-radius:8px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;}
-.pf-ipcr-left .label{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;}
-.pf-ipcr-left .adj{font-size:13px;font-weight:600;color:#22c55e;margin-top:3px;}
-.pf-ipcr-val{font-size:32px;font-weight:600;color:#e2e8f0;font-variant-numeric:tabular-nums;}
-
-.pf-full{grid-column:1/-1;}
-
-/* Badge */
-.badge{font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;white-space:nowrap;display:inline-block;}
-.bd-m{background:#dbeafe;color:#1d4ed8;}
-.bd-f{background:#fce7f3;color:#9d174d;}
-.sg-badge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:18px;padding:0 4px;border-radius:3px;font-size:9px;font-weight:600;background:var(--gray-bg);color:var(--gray-tx);font-family:'DM Mono',monospace;}
+.ipcr-box{background:var(--blue-dark);border-radius:6px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.ipcr-label{font-size:9px;color:#93c5fd;text-transform:uppercase;letter-spacing:.4px;}
+.ipcr-adj{font-size:12px;font-weight:600;color:#22c55e;margin-top:2px;}
+.ipcr-val{font-size:28px;font-weight:700;color:#e2e8f0;}
 </style>
 </head>
 <body>
 
-<!-- Loading -->
-<div class="loading" id="loadingScreen">
-  <div class="spinner"></div>
-  <div class="ld-title">PENRO Cebu HR Dashboard</div>
-  <div class="ld-sub" id="ldSub">Fetching data from Google Sheets...</div>
-</div>
-
-<div class="error-banner" id="errorBanner"></div>
-
-<!-- Header -->
-<div class="hdr">
-  <div class="hdr-top">
-    <div>
-      <div class="hdr-brand">DEPARTMENT OF ENVIRONMENT AND NATURAL RESOURCES</div>
-      <div class="hdr-title">PROVINCIAL ENVIRONMENT AND NATURAL RESOURCES OFFICE — CEBU</div>
-    </div>
-    <div class="hdr-right">
-      <div class="hdr-date" id="hdrDate"></div>
-      <div class="hdr-asof">Data as of September 30, 2025</div>
-      <div class="hdr-updated" id="hdrUpdated"></div>
-      <button class="refresh-btn" onclick="loadData()">↻ Refresh data</button>
+<div class="header">
+  <div class="header-title">DEPARTMENT OF ENVIRONMENT AND NATURAL RESOURCES</div>
+  <div class="header-sub">PROVINCIAL ENVIRONMENT AND NATURAL RESOURCES OFFICE – CEBU &nbsp;·&nbsp; HUMAN RESOURCE DASHBOARD</div>
+  <div class="header-row2">
+    <div class="header-asof" id="hdrAsof">Syncing live data...</div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <span class="header-updated" id="hdrUpdated"></span>
+      <button class="refresh-btn" onclick="init()">↻ Refresh Data</button>
     </div>
   </div>
 </div>
 
-<!-- Tabs -->
-<div class="tabs">
-  <div class="tab active" onclick="setTab('dashboard',this)">Dashboard</div>
-  <div class="tab" onclick="setTab('profile',this)">Employee Profile</div>
+<div class="error" id="errBanner"></div>
+
+<div class="nav-tabs">
+  <div class="tab active" onclick="switchTab('dashboard',this)">Dashboard</div>
+  <div class="tab" onclick="switchTab('profile',this)">Employee Profile</div>
 </div>
 
-<!-- ══════════════════════════════════════
-     DASHBOARD TAB
-══════════════════════════════════════ -->
-<div id="tab-dashboard" class="dash-body">
+<div id="loading">Syncing live data from Google Sheets...</div>
 
-  <!-- Metric cards -->
-  <div class="metric-cards" id="metricCards"></div>
+<div id="view-dashboard" class="container active">
 
-  <!-- Row 1: Workforce table + Stats -->
+  <div class="metrics-grid">
+    <div class="mc"><div class="mc-title">Filled Positions</div><div class="mc-value" id="m-filled">—</div><div class="mc-sub" id="m-filled-sub">Plantilla filled</div></div>
+    <div class="mc amber"><div class="mc-title">Vacancies</div><div class="mc-value" id="m-vacant">—</div><div class="mc-sub">Plantilla unfilled</div></div>
+    <div class="mc purple"><div class="mc-title">COS / JO Staff</div><div class="mc-value" id="m-cos">—</div><div class="mc-sub" id="m-cos-sub">Non-regular</div></div>
+    <div class="mc red"><div class="mc-title">Retirees 2026–31</div><div class="mc-value" id="m-retire">—</div><div class="mc-sub">Upcoming retirements</div></div>
+    <div class="mc green"><div class="mc-title">HMO Enrolled</div><div class="mc-value" id="m-hmo">—</div><div class="mc-sub" id="m-hmo-sub">Permanent staff</div></div>
+  </div>
+
   <div class="dash-grid">
     <div class="card">
-      <div class="card-title">
-        Plantilla positions
-        <span class="card-title-right" id="plantillaSub"></span>
-      </div>
-      <table class="wf-table">
-        <thead><tr>
-          <th>Office</th>
-          <th class="r">Total</th>
-          <th class="r">Filled</th>
-          <th class="r">Vacant</th>
-          <th class="r">Fill rate</th>
-        </tr></thead>
-        <tbody id="plantillaTable"></tbody>
+      <div class="card-header">Plantilla positions <span class="card-header-sub" id="plantilla-sub"></span></div>
+      <table>
+        <thead><tr><th>Office</th><th style="text-align:right;">Total</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Vacant</th><th style="text-align:right;">Rate</th></tr></thead>
+        <tbody id="plantilla-body"></tbody>
       </table>
     </div>
-
     <div class="card">
-      <div class="card-title">Workforce statistics (permanent filled)</div>
-      <div id="workforceStats"></div>
+      <div class="card-header">Workforce statistics</div>
+      <div class="stat-row"><span class="stat-label">Average age</span><span class="stat-val" id="s-age">—</span></div>
+      <div class="stat-row"><span class="stat-label">Average service length</span><span class="stat-val" id="s-svc">—</span></div>
+      <div class="stat-row"><span class="stat-label">Permanent</span><span class="stat-val" id="s-perm">—</span></div>
+      <div class="stat-row"><span class="stat-label">CTI</span><span class="stat-val" id="s-cti">—</span></div>
+      <div class="stat-row"><span class="stat-label">Average monthly salary</span><span class="stat-val" id="s-salary">—</span></div>
+      <div class="stat-row"><span class="stat-label">IPCR coverage</span><span class="stat-val" id="s-ipcr-cov">—</span></div>
+      <div class="stat-row"><span class="stat-label">IPCR – VS rating</span><span class="stat-val" id="s-ipcr-vs">—</span></div>
+    </div>
+    <div class="card">
+      <div class="card-header">Training summary <span class="card-header-sub" id="training-sub"></span></div>
+      <div id="training-list"></div>
     </div>
   </div>
 
-  <!-- Row 2: Gender, Age, Training -->
-  <div class="dash-grid-3">
+  <div class="dash-grid2">
     <div class="card">
-      <div class="card-title">Gender distribution</div>
-      <div class="chart-wrap" style="height:180px;"><canvas id="genderChart"></canvas></div>
+      <div class="card-header">SG distribution</div>
+      <div id="sg-dist"></div>
     </div>
-
     <div class="card">
-      <div class="card-title">Position level</div>
-      <div class="chart-wrap" style="height:180px;"><canvas id="levelChart"></canvas></div>
+      <div class="card-header">Gender distribution</div>
+      <div id="gender-dist"></div>
     </div>
-
     <div class="card">
-      <div class="card-title">
-        Training summary
-        <span class="card-title-right" id="trainingSub"></span>
-      </div>
-      <div id="trainingStats"></div>
+      <div class="card-header">Position level</div>
+      <div id="level-dist"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">Age distribution <span class="card-header-sub" id="age-avg"></span></div>
+      <div id="age-dist"></div>
     </div>
   </div>
 
 </div>
 
-<!-- ══════════════════════════════════════
-     EMPLOYEE PROFILE TAB
-══════════════════════════════════════ -->
-<div id="tab-profile" class="profile-body" style="display:none;">
-  <div class="profile-sidebar">
-    <div class="sidebar-search">
-      <div class="sidebar-search-wrap">
-        <span class="si">&#9906;</span>
-        <input class="search-input" type="text" placeholder="Search employee..." id="pfSearch" oninput="filterProfiles()">
+<div id="view-profile" class="container">
+  <div class="profile-layout">
+    <div class="pf-sidebar">
+      <div class="pf-search">
+        <input type="text" id="searchInput" placeholder="Search employees..." oninput="filterList()">
       </div>
+      <div class="pf-count" id="pf-count"></div>
+      <div class="pf-list" id="empList"></div>
     </div>
-    <div class="sidebar-count" id="pfCount"></div>
-    <div class="sidebar-list" id="pfList"></div>
-  </div>
-  <div class="profile-main" id="pfMain">
-    <div class="profile-empty-state">
-      <div class="profile-empty-icon">&#128100;</div>
-      <div class="profile-empty-text">Select an employee to view their profile</div>
+    <div class="pf-main" id="pfMain">
+      <div class="pf-empty">Select an employee to view their profile</div>
     </div>
   </div>
 </div>
 
 <script>
-// ============================================================
-// PASTE YOUR APPS SCRIPT WEB APP URL HERE
-// ============================================================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7SXiPqXvG6c2pkAO8VdQM7l_AGKQITl7skb4q96LZD5jI2brTrGzXBHPysHOPaWgO/exec";
-// ============================================================
+// REPLACE WITH YOUR NEW DEPLOYMENT URL
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzIqJRt1RKV4eBzIEh_SaGj5T8iDju8-3-Bey5bO1D1hApoeVcRxGG-SxfW5EVnAmzz/exec";
+let appData = {};
 
-const OFFICES = ["PENRO Cebu","CENRO Cebu City","CENRO Argao","REGIONAL OFFICE"];
-const OFFICE_SHORT = {"PENRO Cebu":"PENRO Cebu","CENRO Cebu City":"CENRO Cebu City","CENRO Argao":"CENRO Argao","REGIONAL OFFICE":"Regional Office"};
-const OFFICE_COLORS = {"PENRO Cebu":"#3b82f6","CENRO Cebu City":"#22c55e","CENRO Argao":"#f59e0b","REGIONAL OFFICE":"#94a3b8"};
-
-let DATA = {};
-
-// Helper to remove accents/tildes for searching (e.g., Niño -> Nino)
-function cleanStr(str) {
-  if (!str) return "";
-  return str.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+function switchTab(id, el) {
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".container").forEach(c=>c.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("view-"+id).classList.add("active");
 }
 
-async function loadData() {
-  document.getElementById("loadingScreen").classList.remove("hidden");
-  document.getElementById("ldSub").textContent = "Fetching data from Google Sheets...";
-  document.getElementById("errorBanner").style.display = "none";
-
-  if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") {
-    showError("No Apps Script URL set.");
-    hideLoading(); return;
-  }
-
+async function init() {
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("errBanner").style.display = "none";
   try {
-    document.getElementById("ldSub").textContent = "Loading personnel data...";
-    const res = await fetch(APPS_SCRIPT_URL);
+    const res = await fetch(APPS_SCRIPT_URL + "?t=" + Date.now());
     if (!res.ok) throw new Error("HTTP " + res.status);
-    DATA = await res.json();
-    if (DATA.error) throw new Error(DATA.error);
-    renderAll();
+    appData = await res.json();
+    if (appData.error) throw new Error(appData.error);
+    document.getElementById("loading").style.display = "none";
+    
+    // Update the dynamic timestamps based on live data
+    document.getElementById("hdrAsof").textContent = "Data as of: " + (appData.lastUpdated || "Live");
+    
+    populateDashboard();
+    filterList();
   } catch(err) {
-    showError("Could not load data: " + err.message);
+    document.getElementById("loading").style.display = "none";
+    const el = document.getElementById("errBanner");
+    el.textContent = "Could not load data: " + err.message;
+    el.style.display = "block";
   }
-  hideLoading();
 }
 
-function hideLoading() {
-  setTimeout(()=>document.getElementById("loadingScreen").classList.add("hidden"), 300);
-}
+function populateDashboard() {
+  const s = appData.summary || {};
 
-function showError(msg) {
-  const el = document.getElementById("errorBanner");
-  el.textContent = msg; el.style.display = "block";
-}
+  // Metric cards
+  set("m-filled",   s.totalFilled || 0);
+  set("m-filled-sub", (s.totalFilled||0) + " of " + (s.totalItems||0) + " total items");
+  set("m-vacant",   s.totalUnfilled || 0);
+  set("m-cos",      s.cosTotal || 0);
+  set("m-cos-sub",  s.cosSub || "Non-regular");
+  set("m-retire",   s.retiringSoon || 0);
+  set("m-hmo",      s.hmoEnrolled || 0);
+  set("m-hmo-sub",  s.hmoSub || "Permanent staff");
 
-function renderAll() {
-  const d = new Date();
-  document.getElementById("hdrDate").textContent = d.toLocaleDateString("en-PH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-  document.getElementById("hdrUpdated").textContent = DATA.lastUpdated ? "Generated: " + DATA.lastUpdated : "";
-  renderMetricCards();
-  renderPlantillaTable();
-  renderWorkforceStats();
-  renderGenderChart();
-  renderLevelChart();
-  renderTrainingStats();
-  renderProfileList();
-}
+  // Workforce stats
+  set("s-age",      (s.avgAge||0) + " years");
+  set("s-svc",      (s.avgService||0) + " years");
+  set("s-perm",     "PERMANENT: " + (s.permanent||0) + "  ·  CTI: " + (s.cti||0));
+  set("s-cti",      "");
+  set("s-salary",   "See SALARY sheet");
+  set("s-ipcr-cov", s.ipcrCoverage || "—");
+  set("s-ipcr-vs",  s.ipcrVSRating || "—");
 
-function renderMetricCards() {
-  const s = DATA.summary || {};
-  const cards = [
-    { label:"Filled positions", value:s.totalFilled||0, sub: (s.totalFilled||0)+" of "+(s.totalItems||0)+" total items", color:"c-blue" },
-    { label:"Vacancies", value:s.totalUnfilled||0, sub:"Plantilla unfilled", color:"c-amber" },
-    { label:"Retirees 2026–2031", value:s.retiringSoon||0, sub:"Upcoming retirements", color:"c-red" },
-    { label:"HMO enrolled", value:s.hmoEnrolled||0, sub:(s.hmoEnrolled||0)+" of "+(s.hmoTotal||0)+" permanent staff", color:"c-green" },
-    { label:"Training sessions", value:s.trainingSessions||0, sub:(s.trainingHours||0).toLocaleString()+" total hours", color:"c-purple" },
-  ];
-  document.getElementById("metricCards").innerHTML = cards.map(c=>`
-    <div class="mc ${c.color}">
-      <div class="mc-label">${c.label}</div>
-      <div class="mc-value">${c.value}</div>
-      <div class="mc-sub">${c.sub}</div>
-    </div>`).join("");
-}
-
-function renderPlantillaTable() {
-  const s = DATA.summary || {};
-  const byO = s.byOffice || {};
-  document.getElementById("plantillaSub").textContent = (s.totalFilled||0)+" filled · "+(s.totalUnfilled||0)+" vacant";
-  const rows = OFFICES.map(o => {
-    const d = byO[o] || { total:0, filled:0, unfilled:0 };
-    if (!d.total) return "";
+  // Plantilla table
+  set("plantilla-sub", (s.totalFilled||0) + " filled · " + (s.totalUnfilled||0) + " vacant");
+  const byOrg = s.byOrg || {};
+  const ORDER = ["PENRO Cebu","CENRO Cebu City","CENRO Argao","CTI"];
+  const tbody = document.getElementById("plantilla-body");
+  tbody.innerHTML = "";
+  let gTotal=0, gFilled=0, gUnfilled=0;
+  ORDER.forEach(function(grp) {
+    const d = byOrg[grp];
+    if (!d) return;
+    gTotal += d.total; gFilled += d.filled; gUnfilled += (d.unfilled||0);
     const pct = d.total ? Math.round(d.filled/d.total*100) : 0;
-    const pillCls = pct===100?"pill-green":pct>=80?"pill-blue":pct>=50?"pill-amber":"pill-gray";
-    return `<tr><td><div class="wf-office">${OFFICE_SHORT[o]||o}</div></td><td class="r">${d.total}</td><td class="r">${d.filled}</td><td class="r">${d.unfilled||0}</td><td class="r"><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><div class="fill-bar"><div class="fill-inner" style="width:${pct}%;background:${OFFICE_COLORS[o]||"#94a3b8"};"></div></div><span class="pill ${pillCls}">${pct}%</span></div></td></tr>`;
-  }).join("");
-  document.getElementById("plantillaTable").innerHTML = rows;
-}
+    const pillCls = pct===100?"pill-green":pct>=80?"pill-blue":pct>=50?"pill-amber":"pill-red";
+    const tr = document.createElement("tr");
+    const tdName = document.createElement("td"); tdName.textContent = grp;
+    const tdTotal = document.createElement("td"); tdTotal.className="r"; tdTotal.textContent = d.total;
+    const tdFill  = document.createElement("td"); tdFill.className="r";  tdFill.textContent  = d.filled;
+    const tdVac   = document.createElement("td"); tdVac.className="r";   tdVac.textContent   = d.unfilled||0;
+    const tdPct   = document.createElement("td"); tdPct.className="r";
+    const pill = document.createElement("span"); pill.className="pill "+pillCls; pill.textContent=pct+"%";
+    tdPct.appendChild(pill);
+    tr.appendChild(tdName); tr.appendChild(tdTotal); tr.appendChild(tdFill); tr.appendChild(tdVac); tr.appendChild(tdPct);
+    tbody.appendChild(tr);
+  });
+  // Totals row
+  const tot = document.createElement("tr"); tot.style.fontWeight="600"; tot.style.background="#f8fafc";
+  const tds = ["Total",gTotal,gFilled,gUnfilled, Math.round(gFilled/gTotal*100)+"%"];
+  tds.forEach(function(v,i){ const td=document.createElement("td"); td.textContent=v; if(i>0)td.style.textAlign="right"; tot.appendChild(td); });
+  tbody.appendChild(tot);
 
-function renderWorkforceStats() {
-  const s = DATA.summary || {};
-  const filled = (DATA.employees||[]).filter(e=>e.vacancy==="filled");
-  const getPct = (v,t) => t ? Math.round((v||0)/t*100) : 0;
-  const html = `<div class="kpi-row" style="margin-bottom:16px;"><div class="kpi"><div class="kpi-val">${s.avgAge||"--"}</div><div class="kpi-lbl">Average age</div></div><div class="kpi"><div class="kpi-val">${s.avgService||"--"}</div><div class="kpi-lbl">Avg service (yrs)</div></div><div class="kpi"><div class="kpi-val">${s.avgIpcr||"--"}</div><div class="kpi-lbl">Avg IPCR</div></div></div>
-    <div class="stat-row"><span class="stat-name">Male</span><div class="stat-track"><div class="stat-fill" style="width:${getPct(s.male,filled.length)}%;background:#3b82f6;"></div></div><span class="stat-cnt">${s.male||0}</span></div>
-    <div class="stat-row"><span class="stat-name">Female</span><div class="stat-track"><div class="stat-fill" style="width:${getPct(s.female,filled.length)}%;background:#ec4899;"></div></div><span class="stat-cnt">${s.female||0}</span></div>`;
-  document.getElementById("workforceStats").innerHTML = html;
-}
+  // Training
+  set("training-sub", (s.trainingSessions||0) + " sessions · " + (s.trainingHours||0).toLocaleString() + "h");
+  const byType = s.trainingByType || {};
+  const total  = s.trainingSessions || 1;
+  const trainingEl = document.getElementById("training-list");
+  trainingEl.innerHTML = "";
+  const TC = {"Technical":"#2563eb","Administrative":"#16a34a","Leadership":"#d97706","Mandatory":"#9333ea","Organizational":"#0f766e","Core":"#dc2626"};
+  Object.entries(byType).sort((a,b)=>b[1]-a[1]).forEach(function([t,cnt]) {
+    const row = document.createElement("div"); row.className="bar-row";
+    const lbl = document.createElement("span"); lbl.className="bar-label"; lbl.textContent=t;
+    const track = document.createElement("div"); track.className="bar-track";
+    const fill  = document.createElement("div"); fill.className="bar-fill";
+    fill.style.width = Math.round(cnt/total*100)+"%";
+    fill.style.background = TC[t]||"#64748b";
+    const count = document.createElement("span"); count.className="bar-count"; count.textContent=cnt;
+    track.appendChild(fill); row.appendChild(lbl); row.appendChild(track); row.appendChild(count);
+    trainingEl.appendChild(row);
+  });
 
-function renderGenderChart() {
-  destroyChart("genderChart");
-  const s = DATA.summary||{};
-  const m = s.male||0, f = s.female||0;
-  new Chart(document.getElementById("genderChart"),{type:"doughnut",data:{labels:["Male","Female"],datasets:[{data:[m,f],backgroundColor:["#3b82f6","#ec4899"]}]},options:{responsive:true,maintainAspectRatio:false,cutout:"65%"}});
-}
+  // SG distribution
+  barSection("sg-dist", [
+    ["SG 1–9  Entry Level",  s.sg1_9||0,  s.totalFilled||1, "#64748b"],
+    ["SG 10–22  Mid Level",  s.sg10_22||0, s.totalFilled||1, "#2563eb"],
+    ["SG 24+  Senior Level", s.sg24p||0,  s.totalFilled||1, "#9333ea"],
+  ]);
 
-function renderLevelChart() {
-  destroyChart("levelChart");
-  const s = DATA.summary||{};
-  const sec = s.secondLevel||0, fst = s.firstLevel||0;
-  new Chart(document.getElementById("levelChart"),{type:"doughnut",data:{labels:["2nd Level","1st Level"],datasets:[{data:[sec,fst],backgroundColor:["#0f766e","#22c55e"]}]},options:{responsive:true,maintainAspectRatio:false,cutout:"65%"}});
-}
+  // Gender
+  barSection("gender-dist", [
+    ["Male",   s.male||0,   s.totalFilled||1, "#2563eb"],
+    ["Female", s.female||0, s.totalFilled||1, "#ec4899"],
+  ]);
 
-function renderTrainingStats() {
-  const t = DATA.training||{};
-  const byType = t.byType||{};
-  document.getElementById("trainingSub").textContent = (t.total||0)+" sessions";
-  document.getElementById("trainingStats").innerHTML = Object.entries(byType).map(([type,cnt])=>`<div class="stat-row"><span class="stat-name">${type}</span><div class="stat-track"><div class="stat-fill" style="width:${Math.round(cnt/(t.total||1)*100)}%;background:#3b82f6;"></div></div><span class="stat-cnt">${cnt}</span></div>`).join("");
-}
+  // Position level
+  barSection("level-dist", [
+    ["1st Level", s.firstLevel||0,  s.totalFilled||1, "#16a34a"],
+    ["2nd Level", s.secondLevel||0, s.totalFilled||1, "#0f766e"],
+  ]);
 
-// ── EMPLOYEE PROFILE (Ñ HANDLED) ──────────────────
-
-function field(label, value) {
-  const wrap = document.createElement("div"); wrap.className = "pf-field";
-  const lbl = document.createElement("div"); lbl.className = "pf-field-label"; lbl.textContent = label;
-  const val = document.createElement("div"); val.className = "pf-field-value"; val.textContent = value || "—";
-  wrap.appendChild(lbl); wrap.appendChild(val);
-  return wrap;
-}
-
-function filterProfiles() {
-  const q = cleanStr(document.getElementById("pfSearch").value);
-  const emp = (DATA.employees||[]).filter(e => !q || cleanStr(e.name).includes(q) || cleanStr(e.position).includes(q));
-
-  document.getElementById("pfCount").textContent = emp.length + " employees";
-  const list = document.getElementById("pfList");
-  list.innerHTML = "";
-
-  emp.forEach(e => {
-    const idx = (DATA.employees||[]).indexOf(e);
-    const item = document.createElement("div");
-    item.className = "sidebar-item";
-    item.id = "si-" + idx;
-    item.innerHTML = `<div class="si-avatar" style="background:${OFFICE_COLORS[e.office]||"#64748b"}22; color:${OFFICE_COLORS[e.office]||"#64748b"};">${e.name.charAt(0)}</div><div style="min-width:0;flex:1;"><div class="si-name">${e.name}</div><div class="si-sub">${e.position}</div></div>`;
-    item.onclick = () => showProfile(idx);
-    list.appendChild(item);
+  // Age distribution
+  set("age-avg", "avg " + (s.avgAge||0) + " yrs");
+  const ageBands = s.ageBands || {};
+  const ageEl = document.getElementById("age-dist");
+  ageEl.innerHTML = "";
+  Object.entries(ageBands).forEach(function([band,cnt]) {
+    const row=document.createElement("div"); row.className="bar-row";
+    const lbl=document.createElement("span"); lbl.className="bar-label"; lbl.textContent=band;
+    const track=document.createElement("div"); track.className="bar-track";
+    const fill=document.createElement("div"); fill.className="bar-fill";
+    fill.style.width=Math.round(cnt/(s.totalFilled||1)*100)+"%";
+    fill.style.background="#2563eb";
+    const count=document.createElement("span"); count.className="bar-count"; count.textContent=cnt;
+    track.appendChild(fill); row.appendChild(lbl); row.appendChild(track); row.appendChild(count);
+    ageEl.appendChild(row);
   });
 }
 
-function renderProfileList() { filterProfiles(); }
+function barSection(id, rows) {
+  const el = document.getElementById(id); el.innerHTML="";
+  rows.forEach(function([lbl,cnt,total,color]) {
+    const row=document.createElement("div"); row.className="bar-row";
+    const l=document.createElement("span"); l.className="bar-label"; l.textContent=lbl;
+    const track=document.createElement("div"); track.className="bar-track";
+    const fill=document.createElement("div"); fill.className="bar-fill";
+    fill.style.width=Math.round(cnt/total*100)+"%"; fill.style.background=color;
+    const c=document.createElement("span"); c.className="bar-count"; c.textContent=cnt;
+    track.appendChild(fill); row.appendChild(l); row.appendChild(track); row.appendChild(c);
+    el.appendChild(row);
+  });
+}
 
-function showProfile(idx) {
-  document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
-  const sel = document.getElementById("si-" + idx);
-  if (sel) sel.classList.add("active");
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
 
-  const e = DATA.employees[idx];
-  const ipcr = (DATA.ipcr||[]).find(r => cleanStr(r.name).includes(cleanStr(e.name.split(',')[0])));
+// ── PROFILE LIST ──
+function filterList() {
+  const q   = (document.getElementById("searchInput").value||"").toLowerCase().trim();
+  // Simple accent normalization for search
+  const normalize = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const qNorm = normalize(q);
+  
+  const list = document.getElementById("empList");
+  list.innerHTML = "";
+  const emps = (appData.employees||[]);
+  let shown = 0;
+  emps.forEach(function(e, i) {
+    if (qNorm && !normalize(e.name.toLowerCase()).includes(qNorm) && !normalize((e.position||"").toLowerCase()).includes(qNorm)) return;
+    shown++;
+    const div = document.createElement("div");
+    div.className = "pf-item";
+    const nm = document.createElement("div"); nm.className="pf-item-name"; nm.textContent = e.name;
+    const pos = document.createElement("div"); pos.className="pf-item-pos"; pos.textContent = e.position;
+    div.appendChild(nm); div.appendChild(pos);
+    div.addEventListener("click", function() { loadProfile(i, div); });
+    list.appendChild(div);
+  });
+  document.getElementById("pf-count").textContent = shown + " employees";
+}
+
+function loadProfile(idx, el) {
+  document.querySelectorAll(".pf-item").forEach(function(d){d.classList.remove("active");});
+  el.classList.add("active");
+
+  const e = appData.employees[idx];
+  if (!e) return;
+
+  const normalize = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const ipcr = (appData.ipcr||[]).find(function(r) {
+    const rn = normalize(r.name);
+    const parts = normalize(e.name).split(" ").filter(Boolean);
+    return parts.length >= 2 && rn.includes(parts[0]) && rn.includes(parts[parts.length-1]);
+  });
+
+  function adj(r) {
+    if (!r) return "—";
+    if (r>=5) return "Outstanding";
+    if (r>=4) return "Very Satisfactory";
+    if (r>=3) return "Satisfactory";
+    if (r>=2) return "Unsatisfactory";
+    return "Poor";
+  }
+
+  function retNote() {
+    if (!e.ret_date) return "";
+    const diff = new Date(e.ret_date).getFullYear() - new Date().getFullYear();
+    if (diff<=0) return " · Due for retirement";
+    if (diff===1) return " · Retiring next year";
+    return " · In " + diff + " years";
+  }
 
   const main = document.getElementById("pfMain");
   main.innerHTML = "";
 
   // Header
-  const header = document.createElement("div");
-  header.className = "pf-header";
-  header.innerHTML = `<div class="pf-avatar-lg" style="background:${OFFICE_COLORS[e.office]||"#1b3464"}33;">${e.name.charAt(0)}</div><div><div class="pf-title">${e.name}</div><div class="pf-pos-txt">${e.position}</div><div class="pf-office-txt">${e.office}</div></div>`;
-  main.appendChild(header);
+  const hdr = document.createElement("div"); hdr.className="pf-header";
+  const nm  = document.createElement("div"); nm.className="pf-header-name";  nm.textContent = e.name;
+  const pos = document.createElement("div"); pos.className="pf-header-pos";  pos.textContent = e.position;
+  const off = document.createElement("div"); off.className="pf-header-off";  off.textContent = (e.office||"") + " · " + (e.org_unit||"");
+  const bds = document.createElement("div"); bds.className="pf-header-badges";
+  function badge(cls, txt) {
+    const b=document.createElement("span"); b.className="pf-badge "+cls; b.textContent=txt; bds.appendChild(b);
+  }
+  badge(e.status==="PERMANENT"?"perm":"cti", e.status||"—");
+  badge("sg", "SG " + (e.sg||"—"));
+  badge("lvl", e.pos_level||"—");
+  hdr.appendChild(nm); hdr.appendChild(pos); hdr.appendChild(off); hdr.appendChild(bds);
+  main.appendChild(hdr);
 
-  // Grid
-  const grid = document.createElement("div");
-  grid.className = "pf-grid";
+  // Sections
+  const grid = document.createElement("div"); grid.className="pf-grid";
 
-  const secPers = document.createElement("div"); secPers.className = "pf-section";
-  secPers.innerHTML = `<div class="pf-section-title">Personal info</div>`;
-  secPers.appendChild(field("Birth Date", e.dob));
-  secPers.appendChild(field("Age", e.age));
-  secPers.appendChild(field("Sex", e.sex));
+  function section(title, fields) {
+    const sec=document.createElement("div"); sec.className="pf-section";
+    const t=document.createElement("div"); t.className="pf-section-title"; t.textContent=title;
+    sec.appendChild(t);
+    fields.forEach(function([lbl,val]) {
+      const f=document.createElement("div"); f.className="pf-field";
+      const l=document.createElement("div"); l.className="pf-label"; l.textContent=lbl;
+      const v=document.createElement("div"); v.className="pf-value"; v.textContent=val||"—";
+      f.appendChild(l); f.appendChild(v); sec.appendChild(f);
+    });
+    return sec;
+  }
 
-  const secAppt = document.createElement("div"); secAppt.className = "pf-section";
-  secAppt.innerHTML = `<div class="pf-section-title">Appointment</div>`;
-  secAppt.appendChild(field("Status", e.status));
-  secAppt.appendChild(field("Salary Grade", "SG " + e.sg));
-  secAppt.appendChild(field("Entry Date", e.date_initial));
+  grid.appendChild(section("Personal information", [
+    ["Full name",     e.name],
+    ["Office",        e.office],
+    ["Org unit",      e.org_unit],
+    ["Item number",   e.item_no],
+    ["Sex",           e.sex],
+    ["Date of birth", e.dob],
+    ["Age",           e.age!=null ? e.age+" years old" : ""],
+    ["TIN",           e.tin],
+  ]));
 
-  grid.appendChild(secPers);
-  grid.appendChild(secAppt);
-  main.appendChild(grid);
+  grid.appendChild(section("Appointment details", [
+    ["Status",               e.status],
+    ["Salary grade",         "SG " + (e.sg||"—")],
+    ["Position level",       e.pos_level],
+    ["Category",             e.category],
+    ["Nature of appointment",e.nature_appt],
+    ["Current status",       e.current_status],
+    ["Date of appointment",  e.date_appt],
+    ["Date of initial entry",e.date_initial],
+    ["Length of service",    e.length_svc!=null ? e.length_svc+" year(s)" : ""],
+    ["Expected retirement",  (e.ret_date||"—") + retNote()],
+  ]));
+
+  // Education + IPCR section
+  const secRight = document.createElement("div"); secRight.className="pf-section";
+  const st=document.createElement("div"); st.className="pf-section-title"; st.textContent="Education & performance";
+  secRight.appendChild(st);
 
   if (ipcr) {
-    const ipcrBox = document.createElement("div");
-    ipcrBox.className = "pf-ipcr";
-    ipcrBox.innerHTML = `<div class="pf-ipcr-left"><div class="label">Latest IPCR</div><div class="adj">Rating</div></div><div class="pf-ipcr-val">${ipcr.rating}</div>`;
-    main.appendChild(ipcrBox);
+    const box=document.createElement("div"); box.className="ipcr-box";
+    const left=document.createElement("div");
+    const lbl=document.createElement("div"); lbl.className="ipcr-label"; lbl.textContent="IPCR Rating CY2025";
+    const adjEl=document.createElement("div"); adjEl.className="ipcr-adj"; adjEl.textContent=adj(ipcr.rating);
+    const valEl=document.createElement("div"); valEl.className="ipcr-val"; valEl.textContent=ipcr.rating.toFixed(3);
+    left.appendChild(lbl); left.appendChild(adjEl);
+    box.appendChild(left); box.appendChild(valEl);
+    secRight.appendChild(box);
   }
+
+  [
+    ["Education",         e.education],
+    ["Highest attainment",e.highest_educ],
+    ["Eligibility",       e.eligibility],
+  ].forEach(function([lbl,val]) {
+    const f=document.createElement("div"); f.className="pf-field";
+    const l=document.createElement("div"); l.className="pf-label"; l.textContent=lbl;
+    const v=document.createElement("div"); v.className="pf-value"; v.textContent=val||"—";
+    f.appendChild(l); f.appendChild(v); secRight.appendChild(f);
+  });
+
+  grid.appendChild(secRight);
+  main.appendChild(grid);
 }
 
-function setTab(tabId, el) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  el.classList.add("active");
-  document.getElementById("tab-dashboard").style.display = tabId === 'dashboard' ? 'block' : 'none';
-  document.getElementById("tab-profile").style.display = tabId === 'profile' ? 'grid' : 'none';
-}
-
-function destroyChart(id) {
-  const chart = Chart.getChart(id);
-  if (chart) chart.destroy();
-}
-
-window.onload = loadData;
+init();
 </script>
+</body>
+</html>
